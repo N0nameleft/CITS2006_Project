@@ -3,7 +3,7 @@
 
 The rapido_bank fileystem is located at /opt/rapido_bank/
 
-All the users (CEO: charles, manager: mathilde, bankers: [maria, santiago, diego], auditor: maxwell) passwords are currently "securepassword". 
+All the users' (CEO: charles, manager: mathilde, bankers: [maria, santiago, diego], auditor: maxwell) passwords are currently "securepassword". 
 
 ### Current Group Permissions 
 - The CEO currently has full rwx permissions to all files/directories
