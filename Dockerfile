@@ -37,20 +37,15 @@ RUN mkdir -p /opt/rapido_bank/yara_rules \
     && mkdir -p /opt/rapido_bank/portfolios/maria \
     && mkdir -p /opt/rapido_bank/shared
 
-# Set Access Control Lists (ACLs) for the parent portfolios directory
-RUN setfacl -m g:auditor:rx /opt/rapido_bank/portfolios \
-    && setfacl -m g:ceo:rwx /opt/rapido_bank/portfolios \
-    && setfacl -m g:manager:r /opt/rapido_bank/portfolios
+# Set Access Control Lists (ACLs) to provide read and execute permissions for the manager group
+RUN setfacl -m g:ceo:rwx /opt/rapido_bank/portfolios \
+    && setfacl -m g:manager:rx /opt/rapido_bank/portfolios \
+    && setfacl -m g:auditor:rx /opt/rapido_bank/portfolios
 
-# Apply stricter ACLs to subdirectories to allow read and execute permissions only
-RUN setfacl -R -m u:diego:rwx -m g:ceo:rwx -m g:auditor:rx -m g::0 -m o::0 /opt/rapido_bank/portfolios/diego \
-    && setfacl -R -m u:santiago:rwx -m g:ceo:rwx -m g:auditor:rx -m g::0 -m o::0 /opt/rapido_bank/portfolios/santiago \
-    && setfacl -R -m u:maria:rwx -m g:ceo:rwx -m g:auditor:rx -m g::0 -m o::0 /opt/rapido_bank/portfolios/maria
-
-# Set default ACLs for newly created files within each portfolio
-RUN setfacl -d -m u:diego:rwx -m g:ceo:rwx -m g:auditor:rx -m g::0 -m o::0 /opt/rapido_bank/portfolios/diego \
-    && setfacl -d -m u:santiago:rwx -m g:ceo:rwx -m g:auditor:rx -m g::0 -m o::0 /opt/rapido_bank/portfolios/santiago \
-    && setfacl -d -m u:maria:rwx -m g:ceo:rwx -m g:auditor:rx -m g::0 -m o::0 /opt/rapido_bank/portfolios/maria
+# Apply the same `rx` permissions to subdirectories for the manager
+RUN setfacl -R -m u:diego:rwx -m g:ceo:rwx -m g:manager:rx -m g:auditor:rx -m g::0 -m o::0 /opt/rapido_bank/portfolios/diego \
+    && setfacl -R -m u:santiago:rwx -m g:ceo:rwx -m g:manager:rx -m g:auditor:rx -m g::0 -m o::0 /opt/rapido_bank/portfolios/santiago \
+    && setfacl -R -m u:maria:rwx -m g:ceo:rwx -m g:manager:rx -m g:auditor:rx -m g::0 -m o::0 /opt/rapido_bank/portfolios/maria
 
 # Change ownership of directories to individual users with their own group
 RUN chown -R charles:ceo /opt/rapido_bank \
