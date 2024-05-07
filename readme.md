@@ -1,5 +1,6 @@
 **To run the docker container:**
 `docker build -t rapido_bank . && docker run -it rapido_bank`
+
 The rapido_bank fileystem is located at /opt/rapido_bank/
 All the users (CEO: charles, manager: mathilde, bankers: [maria, santiago, diego], auditor: maxwell) passwords are currently "securepassword". 
 
