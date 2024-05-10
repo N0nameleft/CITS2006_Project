@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     jq \
     && apt-get clean
 
+COPY rapido_bank /opt/rapido_bank
+
 # Create a non-root admin user for the bank security team
 RUN useradd -m -s /bin/bash admin && \
     echo "admin:securepassword" | chpasswd && \
@@ -24,18 +26,6 @@ RUN groupadd -r ceo && useradd -r -m -s /bin/bash -g ceo charles && echo "charle
     && useradd -r -m -s /bin/bash -g bankers santiago && echo "santiago:securepassword" | chpasswd \
     && useradd -r -m -s /bin/bash -g bankers maria && echo "maria:securepassword" | chpasswd \
     && groupadd -r auditor && useradd -r -m -s /bin/bash -g auditor maxwell && echo "maxwell:securepassword" | chpasswd
-
-# Create directories for the required components, including portfolios and shared folders
-RUN mkdir -p /opt/rapido_bank/yara_rules \
-    && mkdir -p /opt/rapido_bank/cipher \
-    && mkdir -p /opt/rapido_bank/logs \
-    && mkdir -p /opt/rapido_bank/encrypted \
-    && mkdir -p /opt/rapido_bank/hash \
-    && mkdir -p /opt/rapido_bank/portfolios \
-    && mkdir -p /opt/rapido_bank/portfolios/diego \
-    && mkdir -p /opt/rapido_bank/portfolios/santiago \
-    && mkdir -p /opt/rapido_bank/portfolios/maria \
-    && mkdir -p /opt/rapido_bank/shared
 
 # Set Access Control Lists (ACLs) to provide read and execute permissions for the manager group
 RUN setfacl -m g:ceo:rwx /opt/rapido_bank/portfolios \
@@ -56,11 +46,9 @@ RUN chown -R charles:ceo /opt/rapido_bank \
     && chown -R maria /opt/rapido_bank/portfolios/maria
 
 # Change ownership to the admin user for other components
-RUN chown -R admin:admin /opt/rapido_bank/yara_rules \
-    && chown -R admin:admin /opt/rapido_bank/cipher \
-    && chown -R admin:admin /opt/rapido_bank/logs \
-    && chown -R admin:admin /opt/rapido_bank/encrypted \
-    && chown -R admin:admin /opt/rapido_bank/hash
+RUN chown -R admin:admin /opt/rapido_bank/yara_engine \
+    && chown -R admin:admin /opt/rapido_bank/encryption \
+    && chown -R admin:admin /opt/rapido_bank/logs 
 
 # Switch to non-root admin user
 USER admin
