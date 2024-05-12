@@ -1,82 +1,119 @@
-import "time:
-import "os"
-import "threading"
-from cryptography.fernet import Fernet
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-import "logging"
+import os  # Provides functions for interacting with the operating system, like handling file paths.
+import time  # Allows us to use functionality related to time, notably sleep delays.
+import threading  # Enables the use of threads, allowing the program to run multiple operations at once.
+import logging  # Facilitates logging events for debugging and monitoring the application.
+import signal
+from watchdog.observers import Observer  # Watches for filesystem events.
+from watchdog.events import FileSystemEventHandler  # Handles the filesystem events that the observer catches.
+import binascii  # Converts between binary and ASCII. Used here to format binary data for logging.
 
-// Setup basic configuration for logging to handle information, warning, and error messages.
+# Setup basic configuration for logging.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configures the logging system to display messages of level INFO and above,
+# and to show the time, log level, and message content in each log entry.
+# Define the directory to monitor using a relative path
 
-// Specify the directory that will be monitored for file changes.
-MONITOR_DIR = '/path/to/monitor'
 
-// Generate cryptographic keys and initialize encryption methods for use.
-keys = [Fernet.generate_key() for _ in range(3)]  // Generate three Fernet keys
-methods = [Fernet(key) for key in keys]  // Create a Fernet object for each key
-current_method_index = 0  // Start using the first method as the current method
+MONITOR_DIR = os.path.join(os.path.dirname(__file__), '../yara_engine')
+# Sets the directory to be monitored. It constructs a path by joining the directory
+# of the current script (__file__) with the relative path '../yara_engine'.
 
-def rotate_cryptographic_method():
-    // Function to rotate the cryptographic method used for encryption.
-    global current_method_index  // Declare global to modify the variable outside of the local scope
-    current_method_index = (current_method_index + 1) % len(methods)  // Cycle through the methods
-    logging.info(f"Cryptographic method rotated. New method index: {current_method_index}")
+if not os.path.exists(MONITOR_DIR):
+    os.makedirs(MONITOR_DIR)  # Creates the directory if it does not exist.
+    logging.info(f"Created directory: {MONITOR_DIR}")
+else:
+    logging.info(f"Monitoring directory: {MONITOR_DIR}")
+# Checks if the directory exists. If not, it creates the directory and logs that it was created.
+# If it does exist, it logs that it is being monitored.
+
+
+
+# Simple custom encryption and hashing functions.
+def simple_encrypt(data, key):
+    key_sum = sum(bytearray(key.encode('utf-8'))) % 256
+    encrypted = bytearray((byte + key_sum) % 256 for byte in bytearray(data))
+    return bytes(encrypted)
+# This function encrypts data by shifting each byte by the sum of the bytes in the key.
+
+
+
+def simple_hash(data):
+    hash_sum = sum(bytearray(data)) % (10**49)  # Simplistic hash function
+    return f"{hash_sum:050d}"  # Return a 50-character string
+# This function generates a simplistic hash by summing the bytes in data and formatting it to a fixed length.
+
+
+
+# Encryption key (as a simple example)
+# Defines a very basic encryption key used by the simple_encrypt function.
+encryption_key = "this_is_a_very_simple_key"
+
 
 def encrypt_file(file_path):
-    // Encrypts the file at the given path using the current cryptographic method.
     try:
-        with open(file_path, 'rb') as file:  // Open the file to read bytes
-            file_data = file.read()  // Read the contents of the file
-        encrypted_data = methods[current_method_index].encrypt(file_data)  // Encrypt the data
-        with open(file_path, 'wb') as file:  // Open the file to write bytes
-            file.write(encrypted_data)  // Write the encrypted data back to the file
-        logging.info(f"Encrypted {file_path} with method {current_method_index}")
+        with open(file_path, 'rb') as file:  # Opens file to read bytes ('rb' mode)
+            file_data = file.read()  # Reads the data from the file
+        encrypted_data = simple_encrypt(file_data, encryption_key)  # Encrypts the data
+        with open(file_path, 'wb') as file:  # Opens file to write bytes ('wb' mode)
+            file.write(encrypted_data)  # Writes the encrypted data back to the file
+        file_hash = simple_hash(file_data)  # Computes a hash of the original data
+        logging.info(f"Encrypted {file_path} and hashed with hash: {binascii.hexlify(bytearray(file_hash.encode())).decode()}")
     except Exception as e:
-        logging.error(f"Error encrypting {file_path}: {e}")
+        logging.error(f"Error processing {file_path}: {e}")
+# Tries to encrypt a file and log the hash of the data. Catches and logs any exceptions.
+
 
 class FileEventHandler(FileSystemEventHandler):
-    // Custom event handler for monitoring file system changes.
     def on_modified(self, event):
-        // Triggered when a file is modified.
-        if not event.is_directory:  // Check if the event is for a file, not a directory
-            encrypt_file(event.src_path)  // Encrypt the modified file
-
+        logging.info(f"Detected modification in: {event.src_path}")  # Additional log
+        if not event.is_directory and event.src_path.endswith('.yar'):
+            logging.info(f"YARA file modified: {event.src_path}")
+            encrypt_file(event.src_path)
     def on_created(self, event):
-        // Triggered when a new file is created.
-        if not event.is_directory:  // Check if the event is for a file, not a directory
-            encrypt_file(event.src_path)  // Encrypt the newly created file
+        logging.info(f"Detected creation in: {event.src_path}")  # Additional log
+        if not event.is_directory and event.src_path.endswith('.yar'):
+            logging.info(f"YARA file created: {event.src_path}")
+            encrypt_file(event.src_path)
+# A class derived from FileSystemEventHandler, which overrides methods to handle file modifications and creations.
+# If a file (not a directory) is modified or created, it logs this event and calls encrypt_file on the file.
 
-def key_rotation_scheduler():
-    // Rotates the cryptographic method based on a time schedule.
+def simulate_time_based_rotation():
     while True:
-        time.sleep(3600)  // Wait for an hour before rotating
-        rotate_cryptographic_method()  // Rotate the cryptographic method
+        time.sleep(3600)  # Waits for 3600 seconds (1 hour) before executing the next line.
+        global encryption_key
+        encryption_key = "new_simple_key"  # Changes the global encryption_key.
+        logging.info("Encryption key rotated.")
+# A function intended to run in its own thread that simulates changing the encryption key every hour.
 
-def simulate_yara_alert():
-    // Simulates a YARA alert at regular intervals.
-    while True:
-        time.sleep(900)  // Wait for 15 minutes before simulating an alert
-        rotate_cryptographic_method()  // Rotate the cryptographic method
-        logging.info("YARA alert simulated: Cryptographic method rotated.")
+observer = Observer()  # Creates an observer object that monitors file system events.
+handler = FileEventHandler()  # Creates an instance of the custom event handler.
+observer.schedule(handler, MONITOR_DIR, recursive=True)  # Schedules the handler to watch the monitoring directory.
+observer.start()  # Starts the observer.
 
-observer = Observer()  // Create an observer object for monitoring file changes.
-handler = FileEventHandler()  // Instantiate the custom handler.
-observer.schedule(handler, MONITOR_DIR, recursive=True)  // Set the observer to monitor the specified directory.
-observer.start()  // Start the observer.
 
-// Create and start threads for the key rotation and YARA alert simulation.
-rotation_thread = threading.Thread(target=key_rotation_scheduler)
-alert_simulation_thread = threading.Thread(target=simulate_yara_alert)
-rotation_thread.start()
-alert_simulation_thread.start()
+rotation_thread = threading.Thread(target=simulate_time_based_rotation)  # Creates a thread for key rotation.
+rotation_thread.start()  # Starts the key rotation thread.
 
-// Keep the script running until interrupted.
+# Signal handling for graceful shutdown
+def handle_signal(signum, frame):
+    logging.info("Signal received, stopping observer.")
+    observer.stop()
+    observer.join()
+    rotation_thread.join()
+    logging.info("Cleanup completed, exiting.")
+    exit(0)
+
+signal.signal(signal.SIGINT, handle_signal)
+signal.signal(signal.SIGTERM, handle_signal)
+
+# Keep the script running until interrupted.
 try:
     while True:
-        time.sleep(1)
+        time.sleep(1)  # Keeps the main thread alive, checking every second.
 except KeyboardInterrupt:
-    observer.stop()  // Stop the observer on keyboard interrupt
-observer.join()
-rotation_thread.join()
-alert_simulation_thread.join()
+    observer.stop()  # Stops the observer on Ctrl+C or other interrupt signal.
+
+
+observer.join()  # Waits for the observer thread to finish.
+rotation_thread.join()  # Waits for the rotation thread to finish.
+# This block keeps the script running until it's interrupted by the user, at which point it stops and cleans up.
