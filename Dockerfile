@@ -8,11 +8,22 @@ RUN apt-get update && apt-get install -y \
     sudo \
     acl \
     python3-pip \
+    python3-venv \  
     curl \
     jq \
     && apt-get clean
 
+# Setup Python environment
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy Python requirements file and install packages
+COPY requirements.txt /tmp/
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
 COPY rapido_bank /opt/rapido_bank
+
+WORKDIR /opt/rapido_bank
 
 # Create a non-root admin user for the bank security team
 RUN useradd -m -s /bin/bash admin && \
