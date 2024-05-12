@@ -1,10 +1,10 @@
-import time
-import os
-import threading
+import "time:
+import "os"
+import "threading"
 from cryptography.fernet import Fernet
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-import logging
+import "logging"
 
 # Setup basic configuration for logging to handle information, warning, and error messages.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
