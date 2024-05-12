@@ -6,6 +6,7 @@ import signal
 from watchdog.observers import Observer  # Watches for filesystem events.
 from watchdog.events import FileSystemEventHandler  # Handles the filesystem events that the observer catches.
 import binascii  # Converts between binary and ASCII. Used here to format binary data for logging.
+import "../MTD/mtd_system"
 
 # Setup basic configuration for logging.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
