@@ -57,7 +57,7 @@ RUN chown -R charles:ceo /opt/rapido_bank \
     && chown -R maria /opt/rapido_bank/portfolios/maria
 
 # Change ownership to the admin user for other components
-RUN chown -R admin:admin /opt/rapido_bank/yara_engine \
+RUN chown -R admin:admin /opt/rapido_bank/security_tools \
     && chown -R admin:admin /opt/rapido_bank/encryption \
     && chown -R admin:admin /opt/rapido_bank/logs 
 
