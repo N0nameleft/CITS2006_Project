@@ -8,8 +8,7 @@ import random
 import string
 import hashlib
 import zipfile
-import requests
-
+#import requests
 
 # API configuration
 API_KEY = 'API_KEY_HERE'  # Need to possibly add a key
@@ -18,18 +17,22 @@ API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 
 def load_yara_rules():
     yara_rules_file = os.path.join(os.path.dirname(__file__), 'yara_rules.yar')
+    print("\nYARA Rule Loading:")
     print(f"Attempting to load YARA rules from: {yara_rules_file}")
     try:
-        return yara.compile(filepath=yara_rules_file)
+        rules = yara.compile(filepath=yara_rules_file)
+        print("Status: Completed Loading")
+        return rules
     except yara.SyntaxError as e:
-        print(f"Error loading YARA rules: {e}")
+        print(f"Status: Error loading YARA rules: {e}")
         return None
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"Status: An error occurred: {e}")
         return None
 
 def monitor_files_with_yara(rules, directory):
-    print(f"Monitoring directory: {directory}")  # Debug print
+    print("\nMonitoring Directory:")
+    print(f"Directory: {directory}")
     for root, _, files in os.walk(directory):
         for file in files:
             file_path = os.path.join(root, file)
@@ -39,7 +42,7 @@ def monitor_files_with_yara(rules, directory):
                 handle_yara_alert(file_path)
 
 def handle_yara_alert(file_path):
-    print("Handling Yara alert for:", file_path)
+    print("\nHandling Yara alert for:", file_path)
     
     # Automatically scan the file with VirusTotal
     file_hash = get_file_hash(file_path)
@@ -190,45 +193,61 @@ def backup_hourly_files():
     # Ensure the backup directory exists
     if not os.path.exists(backup_directory):
         os.makedirs(backup_directory)
-    print(f"Backing up files from {source_directory} to {backup_directory}")  # Debug print
+    print(f"\nHourly Backup Status: Backing up files from {source_directory} to {backup_directory}")
     try:
         # Backup hourly
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        hourly_backup_file = os.path.join(backup_directory, f"hourly_backup_{timestamp}.txt")
+        hourly_backup_file = os.path.join(backup_directory, f"{timestamp}_hb.txt")
         with open(hourly_backup_file, 'w') as backup_file:
             for filename in os.listdir(source_directory):
                 source_item = os.path.join(source_directory, filename)
                 # Check if it's a file and handle accordingly
                 if os.path.isfile(source_item):
                     shutil.copy2(source_item, backup_directory)
-                    print(f"Backed up hourly file {source_item} to {hourly_backup_file}")
-        print(f"Hourly backup completed.")
+        print(f"Status: Hourly backup completed.")
     except Exception as e:
-        print(f"Failed to backup hourly items from {source_directory}: {e}")
+        print(f"Status: Failed to backup hourly items from {source_directory}: {e}")
 
 
 
 def backup_daily_files():
+    while True:
+        # Calculate the next backup time for the next day at a specific time (e.g., 2:00 AM)
+        next_backup_time = datetime.now().replace(hour=2, minute=0, second=0, microsecond=0)
+        if datetime.now() > next_backup_time:
+            # Create the backup immediately if the current time has passed the scheduled backup time
+            create_daily_backup()
+            # Schedule the next backup for the next day at the same time
+            next_backup_time += timedelta(days=1)
+        # Calculate the time to sleep until the next backup
+        time_to_sleep = (next_backup_time - datetime.now()).total_seconds()
+        # Sleep until the next backup time
+        time.sleep(time_to_sleep)
+
+def create_daily_backup():
+    # Define the source directory to be backed up
     source_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
+    # Define the backup directory for daily backups
     backup_directory = os.path.join(os.path.dirname(__file__), 'backup_directory', 'daily_backups')
     # Ensure the backup directory exists
     if not os.path.exists(backup_directory):
         os.makedirs(backup_directory)
-    print(f"Backing up daily files from {source_directory} to {backup_directory}")  # Debug print
+    print(f"\nDaily Backup Status: Backing up files from {source_directory} to {backup_directory}")
+    # Create a unique filename for the daily backup based on the current date
+    backup_filename = datetime.now().strftime("%Y-%m-%d") + "_db.zip"
+    # Create the full path for the backup file
+    backup_filepath = os.path.join(backup_directory, backup_filename)
     try:
-        # Create a directory for daily backups
-        daily_backup_directory = os.path.join(backup_directory, datetime.now().strftime("%Y-%m-%d"))
-        if not os.path.exists(daily_backup_directory):
-            os.makedirs(daily_backup_directory)
-        backup_file = os.path.join(daily_backup_directory, f"{datetime.now().strftime('%Y-%m-%d')}_backup.zip")
-        with zipfile.ZipFile(backup_file, 'w') as zipf:
+        # Create a ZIP file containing the contents of the source directory
+        with zipfile.ZipFile(backup_filepath, 'w') as backup_zip:
             for root, _, files in os.walk(source_directory):
                 for file in files:
                     file_path = os.path.join(root, file)
-                    zipf.write(file_path, os.path.relpath(file_path, source_directory))
-        print(f"Daily backup file created: {backup_file}")
+                    backup_zip.write(file_path, os.path.relpath(file_path, source_directory))
+        print(f"\nStatus: Daily backup completed.")
     except Exception as e:
-        print(f"Failed to create daily backup file: {e}")
+        print(f"\nBackup Status:")
+        print(f"Failed to create daily backup: {e}")
 
 
 def schedule_key_rotation(interval_seconds):
@@ -239,6 +258,7 @@ def schedule_key_rotation(interval_seconds):
             next_rotation = datetime.now() + timedelta(seconds=interval_seconds)
         time.sleep(10)
 
+# Modify the main block to start the daily backup thread
 if __name__ == "__main__":
     rules = load_yara_rules()
     monitored_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
@@ -247,9 +267,15 @@ if __name__ == "__main__":
     threading.Thread(target=monitor_files_with_yara, args=(rules, monitored_directory), daemon=True).start()
     threading.Thread(target=backup_hourly_files, daemon=True).start()
     threading.Thread(target=schedule_key_rotation, args=(key_rotation_interval_seconds,), daemon=True).start()
+    threading.Thread(target=backup_daily_files, daemon=True).start()  # Start the daily backup thread
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         print("Shutting down MTD system...")
+
+
+
+
+
