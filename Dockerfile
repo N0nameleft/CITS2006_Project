@@ -8,7 +8,10 @@ RUN apt-get update && apt-get install -y \
     sudo \
     acl \
     python3-pip \
-    python3-venv \  
+    python3-venv \
+    gcc \
+    build-essential \
+    python3-dev \  
     curl \
     jq \
     && apt-get clean
@@ -21,8 +24,22 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt /tmp/
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
+# Copy your project files
 COPY rapido_bank /opt/rapido_bank
+WORKDIR /opt/rapido_bank
 
+
+# Build and install the C extension
+WORKDIR /opt/rapido_bank/security_tools
+# RUN python3 -m pip install build
+# RUN python3 -m build
+# RUN python3 -m pip install dist/*.whl
+RUN gcc readmem.c -o readmem
+RUN chown root:root readmem
+RUN chmod 777 readmem
+RUN gcc test_malicious_payload.c -o test_malicious_payload
+
+# Return to the main work directory
 WORKDIR /opt/rapido_bank
 
 # Create a non-root admin user for the bank security team
@@ -67,6 +84,7 @@ USER admin
 # Define environment variables if needed
 ENV RAPIDO_HOME /opt/rapido_bank
 
+WORKDIR /opt/rapido_bank/security_tools
 # Default command to run when the container starts
 CMD ["bash"]
 

@@ -1,6 +1,19 @@
 import "pe"
 import "math"
 
+rule detect_malicious_binary {
+    meta:
+        description = "Detect specific binary patterns embedded in memory by test_malicious_payload.c"
+
+    strings:
+        $bin_heap = { BA AD F0 0D DE AD BE EF FE ED FA CE BA AD CA FE }
+        $bin_stack = { DE AD BE EF FE ED FA CE BA AD F0 0D CA FE BA BE }
+
+    condition:
+        $bin_heap or $bin_stack
+}
+
+
 rule entropy_check {
     condition:
         for any section in pe.sections : (
