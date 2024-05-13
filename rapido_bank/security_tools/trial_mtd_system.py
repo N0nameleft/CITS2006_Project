@@ -7,9 +7,12 @@ from datetime import datetime, timedelta
 import random
 import string
 import hashlib
+import zipfile
+import requests
+
 
 # API configuration
-API_KEY = 'API_KEY_HERE'  # Removed from report so as not to share
+API_KEY = 'API_KEY_HERE'  # Need to possibly add a key
 API_URL = 'https://www.virustotal.com/vtapi/v2/file/report'
 API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 
@@ -181,27 +184,52 @@ def revert_changes(file_path):
     except Exception as e:
         print(f"Failed to revert changes for {file_path}: {e}")
 
-def backup_files():
+def backup_hourly_files():
     source_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
-    backup_directory = os.path.join(os.path.dirname(__file__), 'backup_directory', 'backups')
+    backup_directory = os.path.join(os.path.dirname(__file__), 'backup_directory', 'hourly_backups')
     # Ensure the backup directory exists
     if not os.path.exists(backup_directory):
         os.makedirs(backup_directory)
     print(f"Backing up files from {source_directory} to {backup_directory}")  # Debug print
     try:
-        items_to_backup = os.listdir(source_directory)
-        for item in items_to_backup:
-            source_item = os.path.join(source_directory, item)
-            # Check if it's a file and handle accordingly
-            if os.path.isfile(source_item):
-                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-                backup_file = os.path.join(backup_directory, f"{timestamp}_{item}")
-                shutil.copy2(source_item, backup_file)
-                print(f"Backed up file {source_item} to {backup_file}")
-            else:
-                print(f"Skipped {source_item}, not a file.")
+        # Backup hourly
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        hourly_backup_file = os.path.join(backup_directory, f"hourly_backup_{timestamp}.txt")
+        with open(hourly_backup_file, 'w') as backup_file:
+            for filename in os.listdir(source_directory):
+                source_item = os.path.join(source_directory, filename)
+                # Check if it's a file and handle accordingly
+                if os.path.isfile(source_item):
+                    shutil.copy2(source_item, backup_directory)
+                    print(f"Backed up hourly file {source_item} to {hourly_backup_file}")
+        print(f"Hourly backup completed.")
     except Exception as e:
-        print(f"Failed to backup items from {source_directory}: {e}")
+        print(f"Failed to backup hourly items from {source_directory}: {e}")
+
+
+
+def backup_daily_files():
+    source_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
+    backup_directory = os.path.join(os.path.dirname(__file__), 'backup_directory', 'daily_backups')
+    # Ensure the backup directory exists
+    if not os.path.exists(backup_directory):
+        os.makedirs(backup_directory)
+    print(f"Backing up daily files from {source_directory} to {backup_directory}")  # Debug print
+    try:
+        # Create a directory for daily backups
+        daily_backup_directory = os.path.join(backup_directory, datetime.now().strftime("%Y-%m-%d"))
+        if not os.path.exists(daily_backup_directory):
+            os.makedirs(daily_backup_directory)
+        backup_file = os.path.join(daily_backup_directory, f"{datetime.now().strftime('%Y-%m-%d')}_backup.zip")
+        with zipfile.ZipFile(backup_file, 'w') as zipf:
+            for root, _, files in os.walk(source_directory):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    zipf.write(file_path, os.path.relpath(file_path, source_directory))
+        print(f"Daily backup file created: {backup_file}")
+    except Exception as e:
+        print(f"Failed to create daily backup file: {e}")
+
 
 def schedule_key_rotation(interval_seconds):
     next_rotation = datetime.now() + timedelta(seconds=interval_seconds)
@@ -217,7 +245,7 @@ if __name__ == "__main__":
     key_rotation_interval_seconds = 3600  # Rotate keys every hour
 
     threading.Thread(target=monitor_files_with_yara, args=(rules, monitored_directory), daemon=True).start()
-    threading.Thread(target=backup_files, daemon=True).start()
+    threading.Thread(target=backup_hourly_files, daemon=True).start()
     threading.Thread(target=schedule_key_rotation, args=(key_rotation_interval_seconds,), daemon=True).start()
 
     try:
