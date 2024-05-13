@@ -8,7 +8,7 @@ import random
 import string
 import hashlib
 import zipfile
-#import requests
+import requests
 
 # API configuration
 API_KEY = 'API_KEY_HERE'  # Need to possibly add a key
