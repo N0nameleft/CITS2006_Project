@@ -35,8 +35,6 @@ WORKDIR /opt/rapido_bank/security_tools
 # RUN python3 -m build
 # RUN python3 -m pip install dist/*.whl
 RUN gcc readmem.c -o readmem
-RUN chown root:root readmem
-RUN chmod 777 readmem
 RUN gcc test_malicious_payload.c -o test_malicious_payload
 
 # Return to the main work directory
