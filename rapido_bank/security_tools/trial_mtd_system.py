@@ -96,17 +96,25 @@ def revert_changes(file_path):
 def backup_files():
     source_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
     backup_directory = os.path.join(os.path.dirname(__file__), 'backup_directory', 'backups')
+    # Ensure the backup directory exists
+    if not os.path.exists(backup_directory):
+        os.makedirs(backup_directory)
     print(f"Backing up files from {source_directory} to {backup_directory}")  # Debug print
     try:
-        files_to_backup = os.listdir(source_directory)
-        for file_name in files_to_backup:
-            source_file = os.path.join(source_directory, file_name)
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            backup_file = os.path.join(backup_directory, f"{timestamp}_{file_name}")
-            shutil.copy2(source_file, backup_file)
-            print(f"Backed up {source_file} to {backup_file}")
+        items_to_backup = os.listdir(source_directory)
+        for item in items_to_backup:
+            source_item = os.path.join(source_directory, item)
+            # Check if it's a file and handle accordingly
+            if os.path.isfile(source_item):
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                backup_file = os.path.join(backup_directory, f"{timestamp}_{item}")
+                shutil.copy2(source_item, backup_file)
+                print(f"Backed up file {source_item} to {backup_file}")
+            else:
+                print(f"Skipped {source_item}, not a file.")
     except Exception as e:
-        print(f"Failed to backup files from {source_directory}: {e}")
+        print(f"Failed to backup items from {source_directory}: {e}")
+        
 
 def schedule_key_rotation(interval_seconds):
     next_rotation = datetime.now() + timedelta(seconds=interval_seconds)
