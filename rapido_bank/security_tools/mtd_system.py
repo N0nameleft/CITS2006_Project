@@ -1,123 +1,132 @@
-import os  # Provides functions for interacting with the operating system, like handling file paths.
-import time  # Allows us to use functionality related to time, notably sleep delays.
-import threading  # Enables the use of threads, allowing the program to run multiple operations at once.
-import logging  # Facilitates logging events for debugging and monitoring the application.
-import signal
-from watchdog.observers import Observer  # Watches for filesystem events.
-from watchdog.events import FileSystemEventHandler  # Handles the filesystem events that the observer catches.
-import binascii  # Converts between binary and ASCII. Used here to format binary data for logging.
-<<<<<<< HEAD
-=======
-import "../MTD/mtd_system"
->>>>>>> b288339fddc4905226dae006fea40a9c54d2c66a
+import os
+import shutil
+import threading
+import yara
+import time
+from datetime import datetime, timedelta
+import random
+import string
 
-# Setup basic configuration for logging.
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-# Configures the logging system to display messages of level INFO and above,
-# and to show the time, log level, and message content in each log entry.
-# Define the directory to monitor using a relative path
-
-
-MONITOR_DIR = os.path.join(os.path.dirname(__file__), '../yara_engine')
-# Sets the directory to be monitored. It constructs a path by joining the directory
-# of the current script (__file__) with the relative path '../yara_engine'.
-
-if not os.path.exists(MONITOR_DIR):
-    os.makedirs(MONITOR_DIR)  # Creates the directory if it does not exist.
-    logging.info(f"Created directory: {MONITOR_DIR}")
-else:
-    logging.info(f"Monitoring directory: {MONITOR_DIR}")
-# Checks if the directory exists. If not, it creates the directory and logs that it was created.
-# If it does exist, it logs that it is being monitored.
-
-
-
-# Simple custom encryption and hashing functions.
-def simple_encrypt(data, key):
-    key_sum = sum(bytearray(key.encode('utf-8'))) % 256
-    encrypted = bytearray((byte + key_sum) % 256 for byte in bytearray(data))
-    return bytes(encrypted)
-# This function encrypts data by shifting each byte by the sum of the bytes in the key.
-
-
-
-def simple_hash(data):
-    hash_sum = sum(bytearray(data)) % (10**49)  # Simplistic hash function
-    return f"{hash_sum:050d}"  # Return a 50-character string
-# This function generates a simplistic hash by summing the bytes in data and formatting it to a fixed length.
-
-
-
-# Encryption key (as a simple example)
-# Defines a very basic encryption key used by the simple_encrypt function.
-encryption_key = "this_is_a_very_simple_key"
-
-
-def encrypt_file(file_path):
+def load_yara_rules():
+    yara_rules_file = os.path.join(os.path.dirname(__file__), 'yara_rules.yar')
+    print(f"Attempting to load YARA rules from: {yara_rules_file}")
     try:
-        with open(file_path, 'rb') as file:  # Opens file to read bytes ('rb' mode)
-            file_data = file.read()  # Reads the data from the file
-        encrypted_data = simple_encrypt(file_data, encryption_key)  # Encrypts the data
-        with open(file_path, 'wb') as file:  # Opens file to write bytes ('wb' mode)
-            file.write(encrypted_data)  # Writes the encrypted data back to the file
-        file_hash = simple_hash(file_data)  # Computes a hash of the original data
-        logging.info(f"Encrypted {file_path} and hashed with hash: {binascii.hexlify(bytearray(file_hash.encode())).decode()}")
+        return yara.compile(filepath=yara_rules_file)
+    except yara.SyntaxError as e:
+        print(f"Error loading YARA rules: {e}")
+        return None
     except Exception as e:
-        logging.error(f"Error processing {file_path}: {e}")
-# Tries to encrypt a file and log the hash of the data. Catches and logs any exceptions.
+        print(f"An error occurred: {e}")
+        return None
 
+def monitor_files_with_yara(rules, directory):
+    print(f"Monitoring directory: {directory}")  # Debug print
+    for root, _, files in os.walk(directory):
+        for file in files:
+            file_path = os.path.join(root, file)
+            matches = rules.match(file_path)
+            if matches:
+                print(f"Yara Alert: {matches} in {file_path}")
+                handle_yara_alert(file_path)
 
-class FileEventHandler(FileSystemEventHandler):
-    def on_modified(self, event):
-        logging.info(f"Detected modification in: {event.src_path}")  # Additional log
-        if not event.is_directory and event.src_path.endswith('.yar'):
-            logging.info(f"YARA file modified: {event.src_path}")
-            encrypt_file(event.src_path)
-    def on_created(self, event):
-        logging.info(f"Detected creation in: {event.src_path}")  # Additional log
-        if not event.is_directory and event.src_path.endswith('.yar'):
-            logging.info(f"YARA file created: {event.src_path}")
-            encrypt_file(event.src_path)
-# A class derived from FileSystemEventHandler, which overrides methods to handle file modifications and creations.
-# If a file (not a directory) is modified or created, it logs this event and calls encrypt_file on the file.
+def handle_yara_alert(file_path):
+    print("Handling Yara alert for:", file_path)
+    if not check_permission(file_path):
+        revert_changes(file_path)
+    rotate_keys()
 
-def simulate_time_based_rotation():
+def generate_key(length=50):
+    return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
+
+def vigenere_encrypt(plaintext, key):
+    encrypted_text = []
+    key_length = len(key)
+    for i, char in enumerate(plaintext):
+        if char.isalpha():
+            shift = (ord(key[i % key_length]) - ord('a')) % 26
+            if char.islower():
+                encrypted_char = chr((ord(char) - ord('a') + shift) % 26 + ord('a'))
+            else:
+                encrypted_char = chr((ord(char) - ord('A') + shift) % 26 + ord('A'))
+        else:
+            encrypted_char = char
+        encrypted_text.append(encrypted_char)
+    return ''.join(encrypted_text)
+
+def rotate_keys():
+    directory_to_encrypt = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
+    new_key = generate_key()
+    print(f"New encryption key generated. Rotating keys in directory: {directory_to_encrypt}")
+    try:
+        for filename in os.listdir(directory_to_encrypt):
+            file_path = os.path.join(directory_to_encrypt, filename)
+            with open(file_path, 'r') as file:
+                file_contents = file.read()
+            encrypted_contents = vigenere_encrypt(file_contents, new_key)
+            with open(file_path, 'w') as file:
+                file.write(encrypted_contents)
+            print(f"Re-encrypted {file_path} with new key.")
+    except Exception as e:
+        print(f"Failed to encrypt {file_path}: {e}")
+
+def check_permission(file_path):
+    authorized_changes = {}
+    try:
+        with open('authorized_changes.log', 'r') as log:
+            for line in log:
+                path, status = line.strip().split(',')
+                authorized_changes[path] = status
+    except FileNotFoundError:
+        print("Authorization log not found.")
+        return False
+    return authorized_changes.get(file_path, 'unauthorized') == 'authorized'
+
+def revert_changes(file_path):
+    backup_directory = os.path.join(os.path.dirname(__file__), 'backup_directory', 'backups')
+    backup_file_path = os.path.join(backup_directory, os.path.basename(file_path))
+    try:
+        if os.path.exists(backup_file_path):
+            shutil.copy(backup_file_path, file_path)
+            print(f"Reverted changes for {file_path}")
+        else:
+            print(f"No backup found for {file_path}")
+    except Exception as e:
+        print(f"Failed to revert changes for {file_path}: {e}")
+
+def backup_files():
+    source_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
+    backup_directory = os.path.join(os.path.dirname(__file__), 'backup_directory', 'backups')
+    print(f"Backing up files from {source_directory} to {backup_directory}")  # Debug print
+    try:
+        files_to_backup = os.listdir(source_directory)
+        for file_name in files_to_backup:
+            source_file = os.path.join(source_directory, file_name)
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            backup_file = os.path.join(backup_directory, f"{timestamp}_{file_name}")
+            shutil.copy2(source_file, backup_file)
+            print(f"Backed up {source_file} to {backup_file}")
+    except Exception as e:
+        print(f"Failed to backup files from {source_directory}: {e}")
+
+def schedule_key_rotation(interval_seconds):
+    next_rotation = datetime.now() + timedelta(seconds=interval_seconds)
     while True:
-        time.sleep(3600)  # Waits for 3600 seconds (1 hour) before executing the next line.
-        global encryption_key
-        encryption_key = "new_simple_key"  # Changes the global encryption_key.
-        logging.info("Encryption key rotated.")
-# A function intended to run in its own thread that simulates changing the encryption key every hour.
+        if datetime.now() >= next_rotation:
+            rotate_keys()
+            next_rotation = datetime.now() + timedelta(seconds=interval_seconds)
+        time.sleep(10)
 
-observer = Observer()  # Creates an observer object that monitors file system events.
-handler = FileEventHandler()  # Creates an instance of the custom event handler.
-observer.schedule(handler, MONITOR_DIR, recursive=True)  # Schedules the handler to watch the monitoring directory.
-observer.start()  # Starts the observer.
+if __name__ == "__main__":
+    rules = load_yara_rules()
+    monitored_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
+    key_rotation_interval_seconds = 3600  # Rotate keys every hour
 
+    threading.Thread(target=monitor_files_with_yara, args=(rules, monitored_directory), daemon=True).start()
+    threading.Thread(target=backup_files, daemon=True).start()
+    threading.Thread(target=schedule_key_rotation, args=(key_rotation_interval_seconds,), daemon=True).start()
 
-rotation_thread = threading.Thread(target=simulate_time_based_rotation)  # Creates a thread for key rotation.
-rotation_thread.start()  # Starts the key rotation thread.
-
-# Signal handling for graceful shutdown
-def handle_signal(signum, frame):
-    logging.info("Signal received, stopping observer.")
-    observer.stop()
-    observer.join()
-    rotation_thread.join()
-    logging.info("Cleanup completed, exiting.")
-    exit(0)
-
-signal.signal(signal.SIGINT, handle_signal)
-signal.signal(signal.SIGTERM, handle_signal)
-
-# Keep the script running until interrupted.
-try:
-    while True:
-        time.sleep(1)  # Keeps the main thread alive, checking every second.
-except KeyboardInterrupt:
-    observer.stop()  # Stops the observer on Ctrl+C or other interrupt signal.
-
-
-observer.join()  # Waits for the observer thread to finish.
-rotation_thread.join()  # Waits for the rotation thread to finish.
-# This block keeps the script running until it's interrupted by the user, at which point it stops and cleans up.
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Shutting down MTD system...")
