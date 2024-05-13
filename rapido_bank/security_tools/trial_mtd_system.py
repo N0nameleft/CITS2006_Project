@@ -6,6 +6,12 @@ import time
 from datetime import datetime, timedelta
 import random
 import string
+import hashlib
+
+# API configuration
+API_KEY = 'API_KEY_HERE'  # Removed from report so as not to share
+API_URL = 'https://www.virustotal.com/vtapi/v2/file/report'
+API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 
 def load_yara_rules():
     yara_rules_file = os.path.join(os.path.dirname(__file__), 'yara_rules.yar')
@@ -31,9 +37,91 @@ def monitor_files_with_yara(rules, directory):
 
 def handle_yara_alert(file_path):
     print("Handling Yara alert for:", file_path)
+    
+    # Automatically scan the file with VirusTotal
+    file_hash = get_file_hash(file_path)
+    result = scan_file(file_hash)
+    
+    if result:
+        severity = categorize_result(result)
+        print(f"Severity: {severity}")
+        
+        if severity in ['Severe', 'Extreme']:  # Check if severity indicates malware
+            isolate_and_test_malware(file_path)
+    else:
+        print("Failed to scan the file. Malware test cannot be performed.")
+    
     if not check_permission(file_path):
         revert_changes(file_path)
     rotate_keys()
+
+def scan_file(file_hash):
+    """Scan the file with VirusTotal API using the file hash."""
+    params = {'apikey': API_KEY, 'resource': file_hash}
+    response = requests.get(API_URL, params=params)
+    if response.status_code == 200:
+        result = response.json()
+        print(f"API Response for hash {file_hash}: {result}")  # Debugging line
+        return result
+    else:
+        print(f"Error scanning file hash {file_hash}: {response.status_code}, {response.text}")
+        return None
+
+def categorize_result(result):
+    """Categorize the result based on community score."""
+    if result is None:
+        return 'Error: No data available'
+    positives = result.get('positives')
+    total = result.get('total')
+    if positives is None or total is None:
+        print(f"Incomplete data in result: {result}")  # Debugging line
+        return 'Error: Incomplete data'
+    if total > 0:
+        score = positives / total * 100  # Calculate percentage of positives
+        if score == 0:
+            return 'Benign'
+        elif score < 10:
+            return 'Mild'
+        elif score < 20:
+            return 'Severe'
+        else:
+            return 'Extreme'
+    else:
+        return 'Error: Zero total reports'
+
+def isolate_and_test_malware(file_path):
+    """Isolate the flagged file and perform malware tests."""
+    # Move the file to a secure location for further analysis
+    secure_location = './isolated_files'
+    if not os.path.exists(secure_location):
+        os.makedirs(secure_location)
+    try:
+        shutil.move(file_path, os.path.join(secure_location, os.path.basename(file_path)))
+        print(f"File {file_path} isolated for malware testing.")
+
+        # Perform malware tests using VirusTotal API
+        file_hash = get_file_hash(os.path.join(secure_location, os.path.basename(file_path)))
+        result = scan_file(file_hash)
+        if result:
+            severity = categorize_result(result)
+            print(f"Malware Test Result: {severity}")
+            if severity in ['Severe', 'Extreme']:  # If identified as malware, delete the file
+                print(f"Malware detected! Deleting file: {file_path}")
+                os.remove(os.path.join(secure_location, os.path.basename(file_path)))
+            else:
+                print("File is not identified as malware.")
+        else:
+            print("Malware test failed.")
+    except Exception as e:
+        print(f"Error isolating and testing malware for file {file_path}: {e}")
+
+def get_file_hash(file_path):
+    """Generate SHA-256 hash of a file."""
+    hash_sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_sha256.update(chunk)
+    return hash_sha256.hexdigest()
 
 def generate_key(length=50):
     return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
@@ -114,7 +202,6 @@ def backup_files():
                 print(f"Skipped {source_item}, not a file.")
     except Exception as e:
         print(f"Failed to backup items from {source_directory}: {e}")
-        
 
 def schedule_key_rotation(interval_seconds):
     next_rotation = datetime.now() + timedelta(seconds=interval_seconds)
