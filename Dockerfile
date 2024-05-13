@@ -21,6 +21,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt /tmp/
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
+
 COPY rapido_bank /opt/rapido_bank
 
 WORKDIR /opt/rapido_bank
