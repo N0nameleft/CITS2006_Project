@@ -1,6 +1,7 @@
 import csv
 import random
 import string
+import time
 
 def parse_csv_file(file_path, delimiter=','):
     # Temporary dictionary to store username-password pairs
@@ -49,18 +50,38 @@ def encrypt_dict_values(data, key):
         encrypted_data[username] = encrypted_password
     return encrypted_data
 
-def write_encrypted_data_to_csv(encrypted_data, file_path, delimiter=';'):
-    with open(file_path, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile, delimiter=delimiter)
-        writer.writerow(['Username', 'Encrypted Password'])  # Writing header
-        for username, encrypted_password in encrypted_data.items():
-            writer.writerow([username, encrypted_password])
-
 def main(file_path, delimiter=','):
-    data = parse_csv_file(file_path, delimiter)
-    key = generate_key()
-    encrypted_data = encrypt_dict_values(data, key)
-    write_encrypted_data_to_csv(encrypted_data, 'encrypted_file.csv', delimiter)
+    while True:
+        # Read the header from the file
+        data = parse_csv_file(file_path, delimiter)
+        with open(file_path, 'r', newline='') as csvfile:
+            reader = csv.reader(csvfile, delimiter=delimiter)
+            header = next(reader)  # Read the header
+
+        key = generate_key()
+        encrypted_data = encrypt_dict_values(data, key)
+        print("Key used for encryption:", key)
+
+        # Get the original file name without extension
+        file_name = file_path.split('.')[0]
+        # Create a new file with the same name as the original file but with "_encrypted.csv" appended
+        encrypted_file_path = f"{file_name}_encrypted.csv"
+
+        # Write encrypted data to the new file
+        with open(encrypted_file_path, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter=delimiter)
+
+            # Writing the original header plus the new "Identifier" column
+            writer.writerow(header)
+
+            # Writing encrypted data below the header
+            for username, encrypted_password in encrypted_data.items():
+                writer.writerow([username, encrypted_password])
+
+        print(f"Encrypted data saved to {encrypted_file_path}")
+
+        # Wait for 1 hours before re-encrypting
+        time.sleep(3600)  # 1 hours in seconds
 
 if __name__ == "__main__":
     file_path = input("Enter the file path: ")
