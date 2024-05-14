@@ -4,6 +4,6 @@ Team Member, [Your University or Lab Name], [Project Duration]
 Designed and executed experiments to convert fatberg into biodiesel using both base and acid catalysed methods, achieving conversion yields of 65% and 48.48% respectively.
 Utilized advanced software to analyze experimental results and draw precise conclusions, highlighting the limitations in biodiesel's cloud point for cold weather applications.
 Collaborated effectively within a team to manage experiment scales, aligning with available resources and literature guidelines.
+
 Identified avenues for future research, suggesting the use of Ostwald viscometer and automatic cloud and pour point tester for enhanced accuracy in measuring viscosity and cloud points.
 These observations highlight a fundamental property of cryptographic hash functions: even a small change in the input (in this case, changing a single character from 's' to 'r') results in a significant and unpredictable change in the output hash. This property is known as the avalanche effect, which ensures that the hash function is sensitive to even minor changes in the input data, leading to a drastically different output hash.
-
