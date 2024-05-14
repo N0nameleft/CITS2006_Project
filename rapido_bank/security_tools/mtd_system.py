@@ -6,21 +6,33 @@ import time
 from datetime import datetime, timedelta
 import random
 import string
+import hashlib
+import zipfile
+import requests
+
+# API configuration
+API_KEY = 'API_KEY_HERE'  # Need to possibly add a key
+API_URL = 'https://www.virustotal.com/vtapi/v2/file/report'
+API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 
 def load_yara_rules():
     yara_rules_file = os.path.join(os.path.dirname(__file__), 'yara_rules.yar')
+    print("\nYARA Rule Loading:")
     print(f"Attempting to load YARA rules from: {yara_rules_file}")
     try:
-        return yara.compile(filepath=yara_rules_file)
+        rules = yara.compile(filepath=yara_rules_file)
+        print("Status: Completed Loading")
+        return rules
     except yara.SyntaxError as e:
-        print(f"Error loading YARA rules: {e}")
+        print(f"Status: Error loading YARA rules: {e}")
         return None
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"Status: An error occurred: {e}")
         return None
 
 def monitor_files_with_yara(rules, directory):
-    print(f"Monitoring directory: {directory}")  # Debug print
+    print("\nMonitoring Directory:")
+    print(f"Directory: {directory}")
     for root, _, files in os.walk(directory):
         for file in files:
             file_path = os.path.join(root, file)
@@ -30,10 +42,92 @@ def monitor_files_with_yara(rules, directory):
                 handle_yara_alert(file_path)
 
 def handle_yara_alert(file_path):
-    print("Handling Yara alert for:", file_path)
+    print("\nHandling Yara alert for:", file_path)
+    
+    # Automatically scan the file with VirusTotal
+    file_hash = get_file_hash(file_path)
+    result = scan_file(file_hash)
+    
+    if result:
+        severity = categorize_result(result)
+        print(f"Severity: {severity}")
+        
+        if severity in ['Severe', 'Extreme']:  # Check if severity indicates malware
+            isolate_and_test_malware(file_path)
+    else:
+        print("Failed to scan the file. Malware test cannot be performed.")
+    
     if not check_permission(file_path):
         revert_changes(file_path)
     rotate_keys()
+
+def scan_file(file_hash):
+    """Scan the file with VirusTotal API using the file hash."""
+    params = {'apikey': API_KEY, 'resource': file_hash}
+    response = requests.get(API_URL, params=params)
+    if response.status_code == 200:
+        result = response.json()
+        print(f"API Response for hash {file_hash}: {result}")  # Debugging line
+        return result
+    else:
+        print(f"Error scanning file hash {file_hash}: {response.status_code}, {response.text}")
+        return None
+
+def categorize_result(result):
+    """Categorize the result based on community score."""
+    if result is None:
+        return 'Error: No data available'
+    positives = result.get('positives')
+    total = result.get('total')
+    if positives is None or total is None:
+        print(f"Incomplete data in result: {result}")  # Debugging line
+        return 'Error: Incomplete data'
+    if total > 0:
+        score = positives / total * 100  # Calculate percentage of positives
+        if score == 0:
+            return 'Benign'
+        elif score < 10:
+            return 'Mild'
+        elif score < 20:
+            return 'Severe'
+        else:
+            return 'Extreme'
+    else:
+        return 'Error: Zero total reports'
+
+def isolate_and_test_malware(file_path):
+    """Isolate the flagged file and perform malware tests."""
+    # Move the file to a secure location for further analysis
+    secure_location = './isolated_files'
+    if not os.path.exists(secure_location):
+        os.makedirs(secure_location)
+    try:
+        shutil.move(file_path, os.path.join(secure_location, os.path.basename(file_path)))
+        print(f"File {file_path} isolated for malware testing.")
+
+        # Perform malware tests using VirusTotal API
+        file_hash = get_file_hash(os.path.join(secure_location, os.path.basename(file_path)))
+        result = scan_file(file_hash)
+        if result:
+            severity = categorize_result(result)
+            print(f"Malware Test Result: {severity}")
+            if severity in ['Severe', 'Extreme']:  # If identified as malware, delete the file
+                print(f"Malware detected! Deleting file: {file_path}")
+                os.remove(os.path.join(secure_location, os.path.basename(file_path)))
+            else:
+                print("File is not identified as malware.")
+        else:
+            print("Malware test failed.")
+    except Exception as e:
+        print(f"Error isolating and testing malware for file {file_path}: {e}")
+
+def get_file_hash(file_path):
+    """Generate SHA-256 hash of a file."""
+    hash_sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_sha256.update(chunk)
+    return hash_sha256.hexdigest()
 
 def generate_key(length=50):
     return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
@@ -93,20 +187,68 @@ def revert_changes(file_path):
     except Exception as e:
         print(f"Failed to revert changes for {file_path}: {e}")
 
-def backup_files():
+def backup_hourly_files():
     source_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
-    backup_directory = os.path.join(os.path.dirname(__file__), 'backup_directory', 'backups')
-    print(f"Backing up files from {source_directory} to {backup_directory}")  # Debug print
+    backup_directory = os.path.join(os.path.dirname(__file__), 'backup_directory', 'hourly_backups')
+    # Ensure the backup directory exists
+    if not os.path.exists(backup_directory):
+        os.makedirs(backup_directory)
+    print(f"\nHourly Backup Status: Backing up files from {source_directory} to {backup_directory}")
     try:
-        files_to_backup = os.listdir(source_directory)
-        for file_name in files_to_backup:
-            source_file = os.path.join(source_directory, file_name)
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            backup_file = os.path.join(backup_directory, f"{timestamp}_{file_name}")
-            shutil.copy2(source_file, backup_file)
-            print(f"Backed up {source_file} to {backup_file}")
+        # Backup hourly
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        hourly_backup_file = os.path.join(backup_directory, f"{timestamp}_hb.txt")
+        with open(hourly_backup_file, 'w') as backup_file:
+            for filename in os.listdir(source_directory):
+                source_item = os.path.join(source_directory, filename)
+                # Check if it's a file and handle accordingly
+                if os.path.isfile(source_item):
+                    shutil.copy2(source_item, backup_directory)
+        print(f"Status: Hourly backup completed.")
     except Exception as e:
-        print(f"Failed to backup files from {source_directory}: {e}")
+        print(f"Status: Failed to backup hourly items from {source_directory}: {e}")
+
+
+
+def backup_daily_files():
+    while True:
+        # Calculate the next backup time for the next day at a specific time (e.g., 2:00 AM)
+        next_backup_time = datetime.now().replace(hour=2, minute=0, second=0, microsecond=0)
+        if datetime.now() > next_backup_time:
+            # Create the backup immediately if the current time has passed the scheduled backup time
+            create_daily_backup()
+            # Schedule the next backup for the next day at the same time
+            next_backup_time += timedelta(days=1)
+        # Calculate the time to sleep until the next backup
+        time_to_sleep = (next_backup_time - datetime.now()).total_seconds()
+        # Sleep until the next backup time
+        time.sleep(time_to_sleep)
+
+def create_daily_backup():
+    # Define the source directory to be backed up
+    source_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
+    # Define the backup directory for daily backups
+    backup_directory = os.path.join(os.path.dirname(__file__), 'backup_directory', 'daily_backups')
+    # Ensure the backup directory exists
+    if not os.path.exists(backup_directory):
+        os.makedirs(backup_directory)
+    print(f"\nDaily Backup Status: Backing up files from {source_directory} to {backup_directory}")
+    # Create a unique filename for the daily backup based on the current date
+    backup_filename = datetime.now().strftime("%Y-%m-%d") + "_db.zip"
+    # Create the full path for the backup file
+    backup_filepath = os.path.join(backup_directory, backup_filename)
+    try:
+        # Create a ZIP file containing the contents of the source directory
+        with zipfile.ZipFile(backup_filepath, 'w') as backup_zip:
+            for root, _, files in os.walk(source_directory):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    backup_zip.write(file_path, os.path.relpath(file_path, source_directory))
+        print(f"\nStatus: Daily backup completed.")
+    except Exception as e:
+        print(f"\nBackup Status:")
+        print(f"Failed to create daily backup: {e}")
+
 
 def schedule_key_rotation(interval_seconds):
     next_rotation = datetime.now() + timedelta(seconds=interval_seconds)
@@ -116,17 +258,24 @@ def schedule_key_rotation(interval_seconds):
             next_rotation = datetime.now() + timedelta(seconds=interval_seconds)
         time.sleep(10)
 
+# Modify the main block to start the daily backup thread
 if __name__ == "__main__":
     rules = load_yara_rules()
     monitored_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
     key_rotation_interval_seconds = 3600  # Rotate keys every hour
 
     threading.Thread(target=monitor_files_with_yara, args=(rules, monitored_directory), daemon=True).start()
-    threading.Thread(target=backup_files, daemon=True).start()
+    threading.Thread(target=backup_hourly_files, daemon=True).start()
     threading.Thread(target=schedule_key_rotation, args=(key_rotation_interval_seconds,), daemon=True).start()
+    threading.Thread(target=backup_daily_files, daemon=True).start()  # Start the daily backup thread
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         print("Shutting down MTD system...")
+
+
+
+
+
