@@ -17,11 +17,11 @@ API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 
 def load_yara_rules():
     yara_rules_file = os.path.join(os.path.dirname(__file__), 'yara_rules.yar')
-    print("\nYARA Rule Loading:")
+    print("\nYARA Rules Status:")
     print(f"Attempting to load YARA rules from: {yara_rules_file}")
     try:
         rules = yara.compile(filepath=yara_rules_file)
-        print("Status: Completed Loading")
+        print("Status: Loading Completed")
         return rules
     except yara.SyntaxError as e:
         print(f"Status: Error loading YARA rules: {e}")
@@ -204,9 +204,9 @@ def backup_hourly_files():
                 # Check if it's a file and handle accordingly
                 if os.path.isfile(source_item):
                     shutil.copy2(source_item, backup_directory)
-        print(f"Status: Hourly backup completed.")
+        print(f"\nBackup Status: Hourly backup completed.")
     except Exception as e:
-        print(f"Status: Failed to backup hourly items from {source_directory}: {e}")
+        print(f"\nBackup Status: Failed to backup hourly items from {source_directory}: {e}")
 
 
 
@@ -244,10 +244,9 @@ def create_daily_backup():
                 for file in files:
                     file_path = os.path.join(root, file)
                     backup_zip.write(file_path, os.path.relpath(file_path, source_directory))
-        print(f"\nStatus: Daily backup completed.")
+        print(f"\nBackup Status: Daily backup completed.")
     except Exception as e:
-        print(f"\nBackup Status:")
-        print(f"Failed to create daily backup: {e}")
+        print(f"\nBackup Status: Failed to create daily backup: {e}")
 
 
 def schedule_key_rotation(interval_seconds):
