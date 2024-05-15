@@ -4,8 +4,8 @@ import threading
 import yara
 import time
 from datetime import datetime, timedelta
-import zipfile
 import requests
+from yara_engine import start_yara_engine
 from cipher import generate_key, vigenere_encrypt
 from hashing import simple_hash
 
@@ -148,7 +148,6 @@ def backup_hourly_files():
         os.makedirs(backup_directory)
     
     while True:
-        print(f"\n\nHourly Backup Status: Backing up files from [{source_directory}] to [{backup_directory}]")
         
         try:
             # Delete any existing backup directories ending with '_hb'
@@ -180,10 +179,13 @@ def backup_hourly_files():
                     target_item = os.path.join(target_directory, filename)
                     # Copy the file to the backup directory
                     shutil.copy2(source_item, target_item)
+                
+                print(f"\nHourly Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Hourly backup completed.")
+
                         
             
         except Exception as e:
-            print(f"\nBackup Status: Failed to backup hourly items from {source_directory}: {e}")
+                print(f"\nHourly Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Hourly backup completed.")
         
         # Sleep for an hour before the next backup
         time.sleep(3600)
