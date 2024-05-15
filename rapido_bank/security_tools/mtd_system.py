@@ -11,7 +11,7 @@ import zipfile
 import requests
 
 # API configuration
-API_KEY = 'API_KEY_HERE'  # Need to possibly add a key
+API_KEY = os.getenv('YARA_API_KEY')  # Need to possibly add a key
 API_URL = 'https://www.virustotal.com/vtapi/v2/file/report'
 API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 
@@ -188,27 +188,42 @@ def revert_changes(file_path):
         print(f"Failed to revert changes for {file_path}: {e}")
 
 def backup_hourly_files():
-    source_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
-    backup_directory = os.path.join(os.path.dirname(__file__), 'backup_directory', 'hourly_backups')
+    source_directory = '/opt/rapido_bank/'
+    backup_directory = '/opt/rapido_bank/backups'
+    
     # Ensure the backup directory exists
     if not os.path.exists(backup_directory):
         os.makedirs(backup_directory)
+        
     print(f"\nHourly Backup Status: Backing up files from {source_directory} to {backup_directory}")
+    
     try:
-        # Backup hourly
+        # Create a new directory for the current hourly backup
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        hourly_backup_file = os.path.join(backup_directory, f"{timestamp}_hb.txt")
-        with open(hourly_backup_file, 'w') as backup_file:
-            for filename in os.listdir(source_directory):
-                source_item = os.path.join(source_directory, filename)
-                # Check if it's a file and handle accordingly
-                if os.path.isfile(source_item):
-                    shutil.copy2(source_item, backup_directory)
+        hourly_backup_dir = os.path.join(backup_directory, f"{timestamp}_hb")
+        
+        if not os.path.exists(hourly_backup_dir):
+            os.makedirs(hourly_backup_dir)
+        
+        for dirpath, dirnames, filenames in os.walk(source_directory):
+            for filename in filenames:
+                source_item = os.path.join(dirpath, filename)
+                # Ensure the target backup path mirrors the source structure
+                relative_path = os.path.relpath(dirpath, source_directory)
+                target_directory = os.path.join(hourly_backup_dir, relative_path)
+                
+                # Create target directory if it doesn't exist
+                if not os.path.exists(target_directory):
+                    os.makedirs(target_directory)
+                
+                target_item = os.path.join(target_directory, filename)
+                # Copy the file to the backup directory
+                shutil.copy2(source_item, target_item)
+                    
         print(f"\nBackup Status: Hourly backup completed.")
+        
     except Exception as e:
         print(f"\nBackup Status: Failed to backup hourly items from {source_directory}: {e}")
-
-
 
 def backup_daily_files():
     while True:
