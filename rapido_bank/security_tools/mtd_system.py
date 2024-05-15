@@ -152,13 +152,15 @@ def backup_hourly_files():
         print(f"\nHourly Backup Status: Backing up files from {source_directory} to {backup_directory}")
         
         try:
-            # Create or override the directory for the current hourly backup
+            # Delete any existing backup files ending with '_hb'
+            for filename in os.listdir(backup_directory):
+                if filename.endswith('_hb'):
+                    file_path = os.path.join(backup_directory, filename)
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+            
+            # Create the directory for the current hourly backup
             hourly_backup_dir = os.path.join(backup_directory, f"{datetime.now().strftime('%Y%m%d%H%m%s')}_hb")
-            
-            # Remove the existing backup directory if it exists
-            if os.path.exists(hourly_backup_dir):
-                shutil.rmtree(hourly_backup_dir)
-            
             os.makedirs(hourly_backup_dir)
             
             for dirpath, dirnames, filenames in os.walk(source_directory):
@@ -180,13 +182,13 @@ def backup_hourly_files():
                     # Copy the file to the backup directory
                     shutil.copy2(source_item, target_item)
                         
-            print(f"\nBackup Status: Hourly backup completed.")
             
         except Exception as e:
             print(f"\nBackup Status: Failed to backup hourly items from {source_directory}: {e}")
         
         # Sleep for an hour before the next backup
-        time.sleep(5)
+        time.sleep(3600)
+
 
 def backup_daily_files():
     source_directory = '/opt/rapido_bank/'
