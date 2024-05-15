@@ -27,6 +27,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 # Copy your project files
 COPY rapido_bank /opt/rapido_bank
 WORKDIR /opt/rapido_bank
+RUN chmod +x /opt/rapido_bank/security_tools/start_services.sh
 
 
 # Build and install the C extension
@@ -87,3 +88,5 @@ WORKDIR /opt/rapido_bank/security_tools
 # Default command to run when the container starts
 CMD ["bash"]
 
+# Set the script as the entry point
+ENTRYPOINT ["/opt/rapido_bank/security_tools/start_services.sh"]

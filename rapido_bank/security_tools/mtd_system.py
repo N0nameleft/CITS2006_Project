@@ -162,6 +162,10 @@ def backup_hourly_files():
             os.makedirs(hourly_backup_dir)
             
             for dirpath, dirnames, filenames in os.walk(source_directory):
+                # Skip the backup directory
+                if os.path.commonpath([dirpath, backup_directory]) == backup_directory:
+                    continue
+                
                 for filename in filenames:
                     source_item = os.path.join(dirpath, filename)
                     # Ensure the target backup path mirrors the source structure
@@ -183,9 +187,6 @@ def backup_hourly_files():
         
         # Sleep for an hour before the next backup
         time.sleep(3600)
-
-
-
 
 def backup_daily_files():
     source_directory = '/opt/rapido_bank/'
