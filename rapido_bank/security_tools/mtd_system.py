@@ -42,9 +42,10 @@ def monitor_files_with_yara(rules, directory):
                 matches = rules.match(file_path)
                 if matches:
                     print(f"\nMonitoring Directory: \n-> Directory:{directory}\n->Yara Alert: {matches} in {file_path}")
-                    handle_yara_alert(file_path)
+                    isolate_file_for_testing(file_path)  # Move this function call here
             except yara.Error as e:
                 print(f"\nMonitoring Directory: \n-> Directory:{directory}\n->Error scanning file {file_path} with YARA: {e}")
+
 
 def handle_yara_alert(file_path):
     global file_locations
@@ -63,13 +64,13 @@ def isolate_file_for_testing(file_path):
     new_path = os.path.join(secure_location, os.path.basename(file_path))
     if os.path.exists(file_path):  # Check if file still exists before moving
         shutil.move(file_path, new_path)
-        return new_path
+        test_malware(new_path)  # Call test_malware function after moving the file
+        file_locations[file_path] = new_path
     else:
         print(f"Failed to move, file does not exist: {file_path}")
-        return file_path  # Return original path if move fails
 
 def test_malware(file_path):
-    if backups_completed:  # Perform this operation only after backups are completed
+    if backups_completed and "isolated_yara_alerted_files" in file_path:  # Perform this operation only after backups are completed and for isolated files
         file_hash = simple_hash(file_path)
         result = scan_file(file_hash)
         if result:
