@@ -153,7 +153,7 @@ def backup_hourly_files():
         
         try:
             # Create or override the directory for the current hourly backup
-            hourly_backup_dir = os.path.join(backup_directory, f"{datetime.now().strftime('%Y%m%d%H')}_hb")
+            hourly_backup_dir = os.path.join(backup_directory, f"{datetime.now().strftime('%Y%m%d%H%m%s')}_hb")
             
             # Remove the existing backup directory if it exists
             if os.path.exists(hourly_backup_dir):
@@ -186,7 +186,7 @@ def backup_hourly_files():
             print(f"\nBackup Status: Failed to backup hourly items from {source_directory}: {e}")
         
         # Sleep for an hour before the next backup
-        time.sleep(3600)
+        time.sleep(5)
 
 def backup_daily_files():
     source_directory = '/opt/rapido_bank/'
@@ -233,8 +233,6 @@ def backup_daily_files():
         except Exception as e:
             print(f"\nDaily Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Failed to create daily backup: {e}")
 
-# Run the backup_daily_files function
-backup_daily_files()
 
 
 def main():
