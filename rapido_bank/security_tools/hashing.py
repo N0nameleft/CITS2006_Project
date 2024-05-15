@@ -19,6 +19,6 @@ def simple_hash(file_path):
         return f"Error: {str(e)}"
 
 # test
-file_path = "recov.csv"
-hash_output = simple_hash(file_path)
-print("Hash of the file:", hash_output)
+#file_path = "recov.csv"
+#hash_output = simple_hash(file_path)
+#print("Hash of the file:", hash_output)
