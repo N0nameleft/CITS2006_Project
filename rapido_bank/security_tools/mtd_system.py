@@ -10,7 +10,6 @@ from cipher import generate_key, vigenere_encrypt
 from hashing import simple_hash
 
 # API configuration
-#API_KEY = '71167f90aa45e318c20e4708ea715dd76990f263d8b146fa4080b60d10f69c6d'  # do not steal my api key i stg
 API_KEY = os.getenv('YARA_API_KEY')
 API_URL = 'https://www.virustotal.com/vtapi/v2/file/report'
 API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
@@ -204,18 +203,16 @@ def backup_daily_files():
         # Calculate the time to sleep until the next backup
         time_to_sleep = (next_backup_time - datetime.now()).total_seconds()
 
-        # Sleep until the next backup time
-        time.sleep(time_to_sleep)
-
-        # Create the backup at 2:00 AM
         try:
             # Create or override the directory for the current daily backup
             daily_backup_dir = os.path.join(backup_directory, f"{datetime.now().strftime('%Y-%m-%d')}_db")
 
             if not os.path.exists(daily_backup_dir):
                 os.makedirs(daily_backup_dir)
-            
+
             for dirpath, dirnames, filenames in os.walk(source_directory):
+                if os.path.commonpath([dirpath, backup_directory]) == backup_directory:
+                    continue
                 for filename in filenames:
                     source_item = os.path.join(dirpath, filename)
                     # Ensure the target backup path mirrors the source structure
@@ -229,11 +226,15 @@ def backup_daily_files():
                     target_item = os.path.join(target_directory, filename)
                     # Copy the file to the backup directory
                     shutil.copy2(source_item, target_item)
-                        
+            
             print(f"\nDaily Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Daily backup completed.")
-        
+    
         except Exception as e:
             print(f"\nDaily Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Failed to create daily backup: {e}")
+
+        # Sleep until the next backup time
+        time.sleep(time_to_sleep)
+
 
 
 
@@ -245,10 +246,11 @@ def main():
     monitored_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
     key_rotation_interval_seconds = 3600  # Rotate keys every hour
 
-    threading.Thread(target=monitor_files_with_yara, args=(rules, monitored_directory), daemon=True).start()
-    threading.Thread(target=backup_hourly_files, daemon=True).start()
     threading.Thread(target=rotate_keys, args=(), daemon=True).start()
+    threading.Thread(target=monitor_files_with_yara, args=(rules, monitored_directory), daemon=True).start()
     threading.Thread(target=backup_daily_files, daemon=True).start()  # Start the daily backup thread
+    threading.Thread(target=backup_hourly_files, daemon=True).start()
+
 
     try:
         while True:
