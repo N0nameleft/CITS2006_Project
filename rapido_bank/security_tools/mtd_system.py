@@ -146,17 +146,28 @@ def backup_hourly_files():
     if not os.path.exists(backup_directory):
         os.makedirs(backup_directory)
     try:
-        # Create a unique filename for the backup based on the current timestamp
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        hourly_backup_file = os.path.join(backup_directory, f"hourly_backup_{timestamp}.zip")
-        with zipfile.ZipFile(hourly_backup_file, 'w') as zipf:
-            for root, dirs, files in os.walk(source_directory):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    zipf.write(file_path, os.path.relpath(file_path, start=os.path.dirname(source_directory)))
-        print(f"\nHourly Backup Status:\n->Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Hourly backup completed.")
+        while True:
+            # Create a unique filename for the new backup based on the current timestamp
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            hourly_backup_file = os.path.join(backup_directory, f"hourly_backup_{timestamp}.zip")
+            with zipfile.ZipFile(hourly_backup_file, 'w') as zipf:
+                for root, dirs, files in os.walk(source_directory):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        zipf.write(file_path, os.path.relpath(file_path, start=os.path.dirname(source_directory)))
+            print(f"\n\nHourly Backup Status:\n->Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Hourly backup completed.")
+            
+            # Remove previous backup file if it exists
+            previous_backup_file = sorted(os.listdir(backup_directory))[-1]  # Get the latest backup file
+            if previous_backup_file.startswith("hourly_backup_"):
+                os.remove(os.path.join(backup_directory, previous_backup_file))
+                print(f"Previous hourly backup removed: {previous_backup_file}")
+
+            # Sleep for one hour before performing the next backup
+            time.sleep(3600)
     except Exception as e:
         print(f"\nHourly Backup Status:\n->Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Failed to backup hourly items from [{source_directory}]: {e}")
+
 
 def backup_daily_files():
     global backups_completed  # Access the global flag
