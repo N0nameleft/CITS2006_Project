@@ -15,6 +15,7 @@ API_URL = 'https://www.virustotal.com/vtapi/v2/file/report'
 API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 
 file_locations = {}
+backups_completed = False  # Flag to track if backups have been completed
 
 def load_yara_rules():
     yara_rules_file = os.path.join(os.path.dirname(__file__), 'yara_rules.yar')
@@ -31,6 +32,7 @@ def load_yara_rules():
         return None
 
 def monitor_files_with_yara(rules, directory):
+    global backups_completed  # Access the global flag
     print(f"\nMonitoring Directory: \n-> Directory:{directory}")
     for root, _, files in os.walk(directory):
         for file in files:
@@ -56,7 +58,6 @@ def handle_yara_alert(file_path):
     else:
         print(f"File no longer exists at path: {file_path}")
 
-    
 def isolate_file_for_testing(file_path):
     secure_location = os.path.join(os.path.dirname(__file__), '..', 'isolated_yara_alerted_files')
     if not os.path.exists(secure_location):
@@ -68,26 +69,25 @@ def isolate_file_for_testing(file_path):
     else:
         print(f"Failed to move, file does not exist: {file_path}")
         return file_path  # Return original path if move fails
-    
-
 
 def test_malware(file_path):
-    file_hash = simple_hash(file_path)
-    result = scan_file(file_hash)
-    if result:
-        severity = categorize_result(result)
-        print(f"File: {file_path} - Severity: {severity}")
-        if severity in ['Severe', 'Extreme']:
-            response = input("Delete isolated file? Type 'Accept' to confirm: ")
-            if response == "Accept":
-                os.remove(file_path)
-                print("File deleted.")
+    if backups_completed:  # Perform this operation only after backups are completed
+        file_hash = simple_hash(file_path)
+        result = scan_file(file_hash)
+        if result:
+            severity = categorize_result(result)
+            print(f"File: {file_path} - Severity: {severity}")
+            if severity in ['Severe', 'Extreme']:
+                response = input("Delete isolated file? Type 'Accept' to confirm: ")
+                if response == "Accept":
+                    os.remove(file_path)
+                    print("File deleted.")
+            else:
+                response = input("Restore file? Type 'Accept' to confirm: ")
+                if response == "Accept":
+                    restore_file(file_path)
         else:
-            response = input("Restore file? Type 'Accept' to confirm: ")
-            if response == "Accept":
-                restore_file(file_path)
-    else:
-        print(f"Malware test failed for: {file_path}")
+            print(f"Malware test failed for: {file_path}")
 
 def scan_file(file_hash):
     params = {'apikey': API_KEY, 'resource': file_hash}
@@ -122,45 +122,23 @@ def restore_file(file_path):
         print(f"File restored to original location: {original_location[0]}")
 
 def rotate_keys():
+    global backups_completed  # Access the global flag
     directory_to_encrypt = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
-    new_key = generate_key()
-    print(f"\nRotating Keys:\n-> New encryption key generated. \n-> Rotating keys in directory: {directory_to_encrypt}")
-    try:
-        for filename in os.listdir(directory_to_encrypt):
-            file_path = os.path.join(directory_to_encrypt, filename)
-            with open(file_path, 'r') as file:
-                file_contents = file.read()
-            encrypted_contents = vigenere_encrypt(file_contents, new_key)
-            with open(file_path, 'w') as file:
-                file.write(encrypted_contents)
-        # Move the print statement here to confirm completion of the entire directory
-        print(f"\n-> Re-encrypted {directory_to_encrypt} with new key.")
-    except Exception as e:
-        print(f"\n-> Failed to encrypt {directory_to_encrypt}: {e}")
-
-def check_permission(file_path):
-    authorized_changes = {}
-    try:
-        with open('authorized_changes.log', 'r') as log:
-            for line in log:
-                path, status = line.strip().split(',')
-                authorized_changes[path] = status
-    except FileNotFoundError:
-        print("Authorization log not found.")
-        return False
-    return authorized_changes.get(file_path, 'unauthorized') == 'authorized'
-
-def revert_changes(file_path):
-    backup_directory = os.path.join(os.path.dirname(__file__), 'backup_directory', 'backups')
-    backup_file_path = os.path.join(backup_directory, os.path.basename(file_path))
-    try:
-        if os.path.exists(backup_file_path):
-            shutil.copy(backup_file_path, file_path)
-            print(f"Reverted changes for {file_path}")
-        else:
-            print(f"No backup found for {file_path}")
-    except Exception as e:
-        print(f"Failed to revert changes for {file_path}: {e}")
+    if backups_completed:  # Perform this operation only after backups are completed
+        new_key = generate_key()
+        print(f"\nRotating Keys:\n-> New encryption key generated. \n-> Rotating keys in directory: {directory_to_encrypt}")
+        try:
+            for filename in os.listdir(directory_to_encrypt):
+                file_path = os.path.join(directory_to_encrypt, filename)
+                with open(file_path, 'r') as file:
+                    file_contents = file.read()
+                encrypted_contents = vigenere_encrypt(file_contents, new_key)
+                with open(file_path, 'w') as file:
+                    file.write(encrypted_contents)
+            # Move the print statement here to confirm completion of the entire directory
+            print(f"\n-> Re-encrypted {directory_to_encrypt} with new key.")
+        except Exception as e:
+            print(f"\n-> Failed to encrypt {directory_to_encrypt}: {e}")
 
 def backup_hourly_files():
     source_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
@@ -183,12 +161,14 @@ def backup_hourly_files():
         print(f"\n-> Backup Status: Failed to backup hourly items from {source_directory}: {e}")
 
 def backup_daily_files():
+    global backups_completed  # Access the global flag
     while True:
         # Calculate the next backup time for the next day at a specific time (e.g., 2:00 AM)
         next_backup_time = datetime.now().replace(hour=2, minute=0, second=0, microsecond=0)
         if datetime.now() > next_backup_time:
             # Create the backup immediately if the current time has passed the scheduled backup time
             create_daily_backup()
+            backups_completed = True  # Set flag to indicate backups are completed
             # Schedule the next backup for the next day at the same time
             next_backup_time += timedelta(days=1)
         # Calculate the time to sleep until the next backup
