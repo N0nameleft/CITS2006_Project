@@ -40,11 +40,9 @@ def handle_yara_alert(file_path):
         severity = categorize_result(result)
         print(f"Severity: {severity}")
         if severity in ['Severe', 'Extreme']:
-            isolate_and_test_malware(file_path)
-            # Update the file location to isolated files directory
-            isolated_path = os.path.join('./isolated_files', os.path.basename(file_path))
-            file_locations[file_path] = isolated_path
-            print(f"File moved to isolation: {isolated_path}")
+            new_path = isolate_and_test_malware(file_path)
+            file_locations[file_path] = new_path  # Update the file location
+            print(f"File moved to isolation: {new_path}")
         else:
             file_locations[file_path] = file_path  # File remains in place
     else:
@@ -63,7 +61,6 @@ def scan_file(file_hash):
         return None
 
 def categorize_result(result):
-    """Categorize the result based on community score."""
     if result is None:
         return 'Error: No data available'
     positives = result.get('positives')
@@ -82,44 +79,46 @@ def categorize_result(result):
         return 'Extreme'
 
 def isolate_and_test_malware(file_path):
-    """Isolate the flagged file and perform malware tests."""
-    secure_location = './isolated_files'
+    secure_location = os.path.join(os.path.dirname(__file__), '..', 'isolated_yara_alerted_files')
     if not os.path.exists(secure_location):
         os.makedirs(secure_location)
     try:
-        shutil.move(file_path, os.path.join(secure_location, os.path.basename(file_path)))
+        new_path = os.path.join(secure_location, os.path.basename(file_path))
+        shutil.move(file_path, new_path)
         print(f"File {file_path} isolated for malware testing.")
-        file_hash = simple_hash(os.path.join(secure_location, os.path.basename(file_path)))
+        file_hash = simple_hash(new_path)
         result = scan_file(file_hash)
         if result:
             severity = categorize_result(result)
             print(f"Malware Test Result: {severity}")
             if severity in ['Severe', 'Extreme']:
-                print(f"Malware detected! Deleting file: {file_path}")
-                os.remove(os.path.join(secure_location, os.path.basename(file_path)))
+                print(f"Malware detected! Deleting file: {new_path}")
+                os.remove(new_path)
             else:
                 print("File is not identified as malware.")
         else:
             print("Malware test failed.")
     except Exception as e:
-        print(f"Error isolating and testing malware for file {file_path}: {e}")
+        print(f"Error isolating and testing malware for file {new_path}: {e}")
+    return new_path  # Return the new path for tracking
 
 def monitor_files_with_yara(rules, directory):
-    global file_locations
     print("\nMonitoring Directory:")
     print(f"Directory: {directory}")
     for root, _, files in os.walk(directory):
         for file in files:
             file_path = os.path.join(root, file)
-            if file_path in file_locations:
-                print(f"Skipping moved or processed file: {file_path}")
-                continue  # Skip processing if the file has been moved or already processed
+            if file_path in file_locations:  # Skip files that have been moved
+                continue
             if file.startswith('.') or file == "yara_rules.yar":
                 continue
-            matches = rules.match(file_path)
-            if matches:
-                print(f"Yara Alert: {matches} in {file_path}")
-                handle_yara_alert(file_path)
+            try:
+                matches = rules.match(file_path)
+                if matches:
+                    print(f"Yara Alert: {matches} in {file_path}")
+                    handle_yara_alert(file_path)
+            except yara.Error as e:
+                print(f"Error scanning file {file_path} with YARA: {e}")
 
 def rotate_keys():
     directory_to_encrypt = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
