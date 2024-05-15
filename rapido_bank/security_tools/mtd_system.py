@@ -14,6 +14,8 @@ API_KEY = 'API_KEY_HERE'  # Ensure to replace with your actual API key
 API_URL = 'https://www.virustotal.com/vtapi/v2/file/report'
 API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 
+file_locations = {}
+
 def load_yara_rules():
     yara_rules_file = os.path.join(os.path.dirname(__file__), 'yara_rules.yar')
     print("\nYARA Rules Status:")
@@ -29,39 +31,27 @@ def load_yara_rules():
         print(f"Status: An error occurred: {e}")
         return None
 
-def monitor_files_with_yara(rules, directory):
-    print("\nMonitoring Directory:")
-    print(f"Directory: {directory}")
-    for root, _, files in os.walk(directory):
-        for file in files:
-            file_path = os.path.join(root, file)
-            if file.startswith('.') or file == "yara_rules.yar":
-                continue
-            if not os.path.exists(file_path):
-                print(f"File not found: {file_path}")
-                continue
-            try:
-                matches = rules.match(file_path)
-                if matches:
-                    print(f"Yara Alert: {matches} in {file_path}")
-                    handle_yara_alert(file_path)
-            except yara.Error as e:
-                print(f"Error scanning file {file_path} with YARA: {e}")
-
 def handle_yara_alert(file_path):
+    global file_locations
     print("\nHandling Yara alert for:", file_path)
-    try:
-        file_hash = simple_hash(file_path)  # Using imported hashing function
-        result = scan_file(file_hash)
-        if result:
-            severity = categorize_result(result)
-            print(f"Severity: {severity}")
-            if severity in ['Severe', 'Extreme']:
-                isolate_and_test_malware(file_path)
+    file_hash = simple_hash(file_path)
+    result = scan_file(file_hash)
+    if result:
+        severity = categorize_result(result)
+        print(f"Severity: {severity}")
+        if severity in ['Severe', 'Extreme']:
+            isolate_and_test_malware(file_path)
+            # Update the file location to isolated files directory
+            isolated_path = os.path.join('./isolated_files', os.path.basename(file_path))
+            file_locations[file_path] = isolated_path
+            print(f"File moved to isolation: {isolated_path}")
         else:
-            print("Failed to scan the file. Malware test cannot be performed.")
-    except Exception as e:
-        print(f"Error handling file {file_path}: {e}")
+            file_locations[file_path] = file_path  # File remains in place
+    else:
+        print("Failed to scan the file. Malware test cannot be performed.")
+    if not check_permission(file_path):
+        revert_changes(file_path)
+    rotate_keys()
 
 def scan_file(file_hash):
     params = {'apikey': API_KEY, 'resource': file_hash}
@@ -113,6 +103,23 @@ def isolate_and_test_malware(file_path):
             print("Malware test failed.")
     except Exception as e:
         print(f"Error isolating and testing malware for file {file_path}: {e}")
+
+def monitor_files_with_yara(rules, directory):
+    global file_locations
+    print("\nMonitoring Directory:")
+    print(f"Directory: {directory}")
+    for root, _, files in os.walk(directory):
+        for file in files:
+            file_path = os.path.join(root, file)
+            if file_path in file_locations:
+                print(f"Skipping moved or processed file: {file_path}")
+                continue  # Skip processing if the file has been moved or already processed
+            if file.startswith('.') or file == "yara_rules.yar":
+                continue
+            matches = rules.match(file_path)
+            if matches:
+                print(f"Yara Alert: {matches} in {file_path}")
+                handle_yara_alert(file_path)
 
 def rotate_keys():
     directory_to_encrypt = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
