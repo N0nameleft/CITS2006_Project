@@ -17,34 +17,6 @@ API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 file_locations = {}
 backups_completed = False  # Flag to track if backups have been completed
 
-def load_yara_rules():
-    yara_rules_file = os.path.join(os.path.dirname(__file__), 'yara_rules.yar')
-    try:
-        rules = yara.compile(filepath=yara_rules_file)
-        print(f"\nYARA Rules Status: \n-> Attempting to load YARA rules from: {yara_rules_file}\n-> YARA Status: Loading Completed")
-        return rules
-    except yara.SyntaxError as e:
-        print(f"f\nYARA Rules Status: \n-> Attempting to load YARA rules from: {yara_rules_file}\n-> YARA Status: Error loading YARA rules: {e}")
-        return None
-    except Exception as e:
-        print(f"f\nYARA Rules Status: \n-> Attempting to load YARA rules from: {yara_rules_file}\n-> YARA Status: An error occurred: {e}")
-        return None
-
-def monitor_files_with_yara(rules, directory):
-    global backups_completed  # Access the global flag
-    for root, _, files in os.walk(directory):
-        for file in files:
-            file_path = os.path.join(root, file)
-            # Skip files that have been moved or are not to be scanned
-            if file_path in file_locations or file.startswith('.') or file == "yara_rules.yar":
-                continue
-            try:
-                matches = rules.match(file_path)
-                if matches:
-                    print(f"\nMonitoring Directory: \n-> Directory:{directory}\n->Yara Alert: {matches} in {file_path}")
-                    isolate_file_for_testing(file_path)  # Move this function call here
-            except yara.Error as e:
-                print(f"\nMonitoring Directory: \n-> Directory:{directory}\n->Error scanning file {file_path} with YARA: {e}")
 
 
 def handle_yara_alert(file_path):
@@ -180,7 +152,7 @@ def backup_hourly_files():
                     # Copy the file to the backup directory
                     shutil.copy2(source_item, target_item)
                 
-                print(f"\nHourly Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Hourly backup completed.")
+            print(f"\nHourly Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Hourly backup completed.")
 
                         
             
