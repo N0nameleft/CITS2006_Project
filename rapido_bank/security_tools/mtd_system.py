@@ -194,7 +194,7 @@ def backup_daily_files():
 
     while True:
         # Calculate the next backup time for the next day at 2:00 AM
-        next_backup_time = datetime.now().replace(hour=24, minute=0, second=0, microsecond=0)
+        next_backup_time = datetime.now().replace(hour=0, minute=0, second=0)
         if datetime.now() > next_backup_time:
             # Adjust the next backup time to the next day at 2:00 AM
             next_backup_time += timedelta(days=1)
