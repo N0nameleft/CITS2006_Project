@@ -99,7 +99,6 @@ def start_yara_engine():
     for proc in psutil.process_iter(['pid', 'name']):
         scan_process_memory(rules, proc.pid, proc.name())
 
-    print("Scanning completed.")
 
 if __name__ == "__main__":
     start_yara_engine()

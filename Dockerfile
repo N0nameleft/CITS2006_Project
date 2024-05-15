@@ -74,9 +74,12 @@ RUN chown -R charles:ceo /opt/rapido_bank \
 
 # Change ownership to the admin user for other components
 RUN chown -R admin:admin /opt/rapido_bank/security_tools \
-    && chown -R admin:admin /opt/rapido_bank/encryption \
     && chown -R admin:admin /opt/rapido_bank/logs \
-    && chown -R admin:admin /opt/rapido_bank/backups
+    && chown -R admin:admin /opt/rapido_bank/backups \
+    && chmod -R 700 /opt/rapido_bank/backups \
+    && chown -R admin:admin /opt/rapido_bank/admin \
+    && chmod -R 700 /opt/rapido_bank/admin
+
 
 # Switch to non-root admin user
 USER admin
