@@ -147,36 +147,42 @@ def backup_hourly_files():
     # Ensure the backup directory exists
     if not os.path.exists(backup_directory):
         os.makedirs(backup_directory)
-        
-    print(f"\nHourly Backup Status: Backing up files from {source_directory} to {backup_directory}")
     
-    try:
-        # Create a new directory for the current hourly backup
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        hourly_backup_dir = os.path.join(backup_directory, f"{timestamp}_hb")
+    while True:
+        print(f"\nHourly Backup Status: Backing up files from {source_directory} to {backup_directory}")
         
-        if not os.path.exists(hourly_backup_dir):
+        try:
+            # Create or override the directory for the current hourly backup
+            hourly_backup_dir = os.path.join(backup_directory, f"{datetime.now().strftime('%Y%m%d%H')}_hb")
+            
+            # Remove the existing backup directory if it exists
+            if os.path.exists(hourly_backup_dir):
+                shutil.rmtree(hourly_backup_dir)
+            
             os.makedirs(hourly_backup_dir)
-        
-        for dirpath, dirnames, filenames in os.walk(source_directory):
-            for filename in filenames:
-                source_item = os.path.join(dirpath, filename)
-                # Ensure the target backup path mirrors the source structure
-                relative_path = os.path.relpath(dirpath, source_directory)
-                target_directory = os.path.join(hourly_backup_dir, relative_path)
-                
-                # Create target directory if it doesn't exist
-                if not os.path.exists(target_directory):
-                    os.makedirs(target_directory)
-                
-                target_item = os.path.join(target_directory, filename)
-                # Copy the file to the backup directory
-                shutil.copy2(source_item, target_item)
+            
+            for dirpath, dirnames, filenames in os.walk(source_directory):
+                for filename in filenames:
+                    source_item = os.path.join(dirpath, filename)
+                    # Ensure the target backup path mirrors the source structure
+                    relative_path = os.path.relpath(dirpath, source_directory)
+                    target_directory = os.path.join(hourly_backup_dir, relative_path)
                     
-        print(f"\nBackup Status: Hourly backup completed.")
+                    # Create target directory if it doesn't exist
+                    if not os.path.exists(target_directory):
+                        os.makedirs(target_directory)
+                    
+                    target_item = os.path.join(target_directory, filename)
+                    # Copy the file to the backup directory
+                    shutil.copy2(source_item, target_item)
+                        
+            print(f"\nBackup Status: Hourly backup completed.")
+            
+        except Exception as e:
+            print(f"\nBackup Status: Failed to backup hourly items from {source_directory}: {e}")
         
-    except Exception as e:
-        print(f"\nBackup Status: Failed to backup hourly items from {source_directory}: {e}")
+        # Sleep for an hour before the next backup
+        time.sleep(3600)
 
 
 
