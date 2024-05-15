@@ -187,7 +187,6 @@ def revert_changes(file_path):
     except Exception as e:
         print(f"Failed to revert changes for {file_path}: {e}")
 
-
 def backup_hourly_files():
     source_directory = '/opt/rapido_bank/'
     backup_directory = '/opt/rapido_bank/backups'
