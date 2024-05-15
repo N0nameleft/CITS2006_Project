@@ -10,7 +10,7 @@ from cipher import generate_key, vigenere_encrypt
 from hashing import simple_hash
 
 # API configuration
-API_KEY = 'API_KEY_HERE'  # Ensure to replace with your actual API key
+API_KEY = '71167f90aa45e318c20e4708ea715dd76990f263d8b146fa4080b60d10f69c6d'  # do not steal my api key i stg
 API_URL = 'https://www.virustotal.com/vtapi/v2/file/report'
 API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 
@@ -19,21 +19,19 @@ backups_completed = False  # Flag to track if backups have been completed
 
 def load_yara_rules():
     yara_rules_file = os.path.join(os.path.dirname(__file__), 'yara_rules.yar')
-    print(f"\nYARA Rules Status: \n-> Attempting to load YARA rules from: {yara_rules_file}")
     try:
         rules = yara.compile(filepath=yara_rules_file)
-        print("-> YARA Status: Loading Completed")
+        print(f"\nYARA Rules Status: \n-> Attempting to load YARA rules from: {yara_rules_file}\n-> YARA Status: Loading Completed")
         return rules
     except yara.SyntaxError as e:
-        print(f"-> YARA Status: Error loading YARA rules: {e}")
+        print(f"f\nYARA Rules Status: \n-> Attempting to load YARA rules from: {yara_rules_file}\n-> YARA Status: Error loading YARA rules: {e}")
         return None
     except Exception as e:
-        print(f"-> YARA Status: An error occurred: {e}")
+        print(f"f\nYARA Rules Status: \n-> Attempting to load YARA rules from: {yara_rules_file}\n-> YARA Status: An error occurred: {e}")
         return None
 
 def monitor_files_with_yara(rules, directory):
     global backups_completed  # Access the global flag
-    print(f"\nMonitoring Directory: \n-> Directory:{directory}")
     for root, _, files in os.walk(directory):
         for file in files:
             file_path = os.path.join(root, file)
@@ -43,10 +41,10 @@ def monitor_files_with_yara(rules, directory):
             try:
                 matches = rules.match(file_path)
                 if matches:
-                    print(f"Yara Alert: {matches} in {file_path}")
+                    print(f"\nMonitoring Directory: \n-> Directory:{directory}\n->Yara Alert: {matches} in {file_path}")
                     handle_yara_alert(file_path)
             except yara.Error as e:
-                print(f"Error scanning file {file_path} with YARA: {e}")
+                print(f"\nMonitoring Directory: \n-> Directory:{directory}\n->Error scanning file {file_path} with YARA: {e}")
 
 def handle_yara_alert(file_path):
     global file_locations
@@ -126,7 +124,6 @@ def rotate_keys():
     directory_to_encrypt = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
     if backups_completed:  # Perform this operation only after backups are completed
         new_key = generate_key()
-        print(f"\nRotating Keys:\n-> New encryption key generated. \n-> Rotating keys in directory: {directory_to_encrypt}")
         try:
             for filename in os.listdir(directory_to_encrypt):
                 file_path = os.path.join(directory_to_encrypt, filename)
@@ -136,9 +133,9 @@ def rotate_keys():
                 with open(file_path, 'w') as file:
                     file.write(encrypted_contents)
             # Move the print statement here to confirm completion of the entire directory
-            print(f"\n-> Re-encrypted {directory_to_encrypt} with new key.")
+            print(f"\nRotating Keys:\n-> New encryption key generated.\n-> Rotating keys in directory: {directory_to_encrypt}\n-> Re-encrypted {directory_to_encrypt} with new key.")
         except Exception as e:
-            print(f"\n-> Failed to encrypt {directory_to_encrypt}: {e}")
+            print(f"\nRotating Keys:\n-> New encryption key generated. \n-> Rotating keys in directory: {directory_to_encrypt}\n-> Failed to encrypt {directory_to_encrypt}: {e}")
 
 def backup_hourly_files():
     source_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
@@ -146,7 +143,6 @@ def backup_hourly_files():
     # Ensure the backup directory exists
     if not os.path.exists(backup_directory):
         os.makedirs(backup_directory)
-    print(f"\nHourly Backup Status: \n->Backing up files from {source_directory} to {backup_directory}")
     try:
         # Create a unique filename for the backup based on the current timestamp
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -156,9 +152,9 @@ def backup_hourly_files():
                 for file in files:
                     file_path = os.path.join(root, file)
                     zipf.write(file_path, os.path.relpath(file_path, start=os.path.dirname(source_directory)))
-        print(f"\n-> Backup Status: Hourly backup completed.")
+        print(f"\nHourly Backup Status:\n->Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Hourly backup completed.")
     except Exception as e:
-        print(f"\n-> Backup Status: Failed to backup hourly items from {source_directory}: {e}")
+        print(f"\nHourly Backup Status:\n->Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Failed to backup hourly items from [{source_directory}]: {e}")
 
 def backup_daily_files():
     global backups_completed  # Access the global flag
@@ -184,7 +180,6 @@ def create_daily_backup():
     # Ensure the backup directory exists
     if not os.path.exists(backup_directory):
         os.makedirs(backup_directory)
-    print(f"\nDaily Backup Status: \n-> Backing up files from {source_directory} to {backup_directory}")
     # Create a unique filename for the daily backup based on the current date
     backup_filename = datetime.now().strftime("%Y-%m-%d") + "_db.zip"
     # Create the full path for the backup file
@@ -196,9 +191,9 @@ def create_daily_backup():
                 for file in files:
                     file_path = os.path.join(root, file)
                     backup_zip.write(file_path, os.path.relpath(file_path, source_directory))
-        print(f"\n-> Backup Status: Daily backup completed.")
+        print(f"\nDaily Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Daily backup completed.")
     except Exception as e:
-        print(f"\n-> Backup Status: Failed to create daily backup: {e}")
+        print(f"\nDaily Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Failed to create daily backup: {e}")
 
 
 def main():
