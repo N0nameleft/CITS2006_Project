@@ -188,43 +188,52 @@ def backup_hourly_files():
 
 
 def backup_daily_files():
-    global backups_completed  # Access the global flag
+    source_directory = '/opt/rapido_bank/'
+    backup_directory = '/opt/rapido_bank/backups'
+
     while True:
-        # Calculate the next backup time for the next day at a specific time (e.g., 2:00 AM)
-        next_backup_time = datetime.now().replace(hour=2, minute=0, second=0, microsecond=0)
+        # Calculate the next backup time for the next day at 2:00 AM
+        next_backup_time = datetime.now().replace(hour=24, minute=0, second=0, microsecond=0)
         if datetime.now() > next_backup_time:
-            # Create the backup immediately if the current time has passed the scheduled backup time
-            create_daily_backup()
-            backups_completed = True  # Set flag to indicate backups are completed
-            # Schedule the next backup for the next day at the same time
+            # Adjust the next backup time to the next day at 2:00 AM
             next_backup_time += timedelta(days=1)
+        
         # Calculate the time to sleep until the next backup
         time_to_sleep = (next_backup_time - datetime.now()).total_seconds()
+
         # Sleep until the next backup time
         time.sleep(time_to_sleep)
 
-def create_daily_backup():
-    # Define the source directory to be backed up
-    source_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
-    # Define the backup directory for daily backups
-    backup_directory = os.path.join(os.path.dirname(__file__), 'backup_directory', 'daily_backups')
-    # Ensure the backup directory exists
-    if not os.path.exists(backup_directory):
-        os.makedirs(backup_directory)
-    # Create a unique filename for the daily backup based on the current date
-    backup_filename = datetime.now().strftime("%Y-%m-%d") + "_db.zip"
-    # Create the full path for the backup file
-    backup_filepath = os.path.join(backup_directory, backup_filename)
-    try:
-        # Create a ZIP file containing the contents of the source directory
-        with zipfile.ZipFile(backup_filepath, 'w') as backup_zip:
-            for root, _, files in os.walk(source_directory):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    backup_zip.write(file_path, os.path.relpath(file_path, source_directory))
-        print(f"\nDaily Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Daily backup completed.")
-    except Exception as e:
-        print(f"\nDaily Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Failed to create daily backup: {e}")
+        # Create the backup at 2:00 AM
+        try:
+            # Create or override the directory for the current daily backup
+            daily_backup_dir = os.path.join(backup_directory, f"{datetime.now().strftime('%Y-%m-%d')}_db")
+
+            if not os.path.exists(daily_backup_dir):
+                os.makedirs(daily_backup_dir)
+            
+            for dirpath, dirnames, filenames in os.walk(source_directory):
+                for filename in filenames:
+                    source_item = os.path.join(dirpath, filename)
+                    # Ensure the target backup path mirrors the source structure
+                    relative_path = os.path.relpath(dirpath, source_directory)
+                    target_directory = os.path.join(daily_backup_dir, relative_path)
+                    
+                    # Create target directory if it doesn't exist
+                    if not os.path.exists(target_directory):
+                        os.makedirs(target_directory)
+                    
+                    target_item = os.path.join(target_directory, filename)
+                    # Copy the file to the backup directory
+                    shutil.copy2(source_item, target_item)
+                        
+            print(f"\nDaily Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Daily backup completed.")
+        
+        except Exception as e:
+            print(f"\nDaily Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Failed to create daily backup: {e}")
+
+# Run the backup_daily_files function
+backup_daily_files()
 
 
 def main():
