@@ -50,7 +50,7 @@ def encrypt_dict_values(data, key):
         encrypted_data[username] = encrypted_password
     return encrypted_data
 
-def main(file_path, delimiter=','):
+def encrypt_file(file_path, delimiter=','):
     while True:
         # Read the header from the file
         data = parse_csv_file(file_path, delimiter)
@@ -86,7 +86,7 @@ def main(file_path, delimiter=','):
 if __name__ == "__main__":
     file_path = input("Enter the file path: ")
     delimiter = input("Enter the delimiter (default is ','): ") or ','
-    main(file_path, delimiter)
+    encrypt_file(file_path, delimiter)
 
 
 

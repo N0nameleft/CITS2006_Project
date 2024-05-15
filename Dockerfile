@@ -87,4 +87,3 @@ ENV RAPIDO_HOME /opt/rapido_bank
 WORKDIR /opt/rapido_bank/security_tools
 # Default command to run when the container starts
 CMD ["bash"]
-
