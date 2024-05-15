@@ -86,7 +86,7 @@ def scan_process_memory(rules, pid, name):
     else:
         print(f"No readable memory regions found for PID {pid}")
 
-def main():
+def start_yara_engine():
     rules = load_yara_rules()
     if not rules:
         return
@@ -102,5 +102,5 @@ def main():
     print("Scanning completed.")
 
 if __name__ == "__main__":
-    main()
+    start_yara_engine()
 
