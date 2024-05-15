@@ -148,7 +148,7 @@ def backup_hourly_files():
         os.makedirs(backup_directory)
     
     while True:
-        print(f"\nHourly Backup Status: Backing up files from {source_directory} to {backup_directory}")
+        print(f"\n\nHourly Backup Status: Backing up files from [{source_directory}] to [{backup_directory}]")
         
         try:
             # Delete any existing backup files ending with '_hb'
@@ -246,8 +246,8 @@ def main():
     monitored_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
     key_rotation_interval_seconds = 3600  # Rotate keys every hour
 
-    threading.Thread(target=rotate_keys, args=(), daemon=True).start()
     threading.Thread(target=monitor_files_with_yara, args=(rules, monitored_directory), daemon=True).start()
+    threading.Thread(target=rotate_keys, args=(), daemon=True).start()
     threading.Thread(target=backup_daily_files, daemon=True).start()  # Start the daily backup thread
     threading.Thread(target=backup_hourly_files, daemon=True).start()
 
