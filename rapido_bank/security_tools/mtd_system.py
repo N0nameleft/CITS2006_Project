@@ -151,12 +151,12 @@ def backup_hourly_files():
         print(f"\n\nHourly Backup Status: Backing up files from [{source_directory}] to [{backup_directory}]")
         
         try:
-            # Delete any existing backup files ending with '_hb'
-            for filename in os.listdir(backup_directory):
-                if filename.endswith('_hb'):
-                    file_path = os.path.join(backup_directory, filename)
-                    if os.path.isfile(file_path):
-                        os.remove(file_path)
+            # Delete any existing backup directories ending with '_hb'
+            for dirname in os.listdir(backup_directory):
+                if dirname.endswith('_hb'):
+                    dir_path = os.path.join(backup_directory, dirname)
+                    if os.path.isdir(dir_path):
+                        shutil.rmtree(dir_path)
             
             # Create the directory for the current hourly backup
             hourly_backup_dir = os.path.join(backup_directory, f"{datetime.now().strftime('%Y%m%d%H%m%s')}_hb")
@@ -187,6 +187,7 @@ def backup_hourly_files():
         
         # Sleep for an hour before the next backup
         time.sleep(3600)
+
 
 
 def backup_daily_files():
@@ -238,7 +239,7 @@ def backup_daily_files():
 
 
 
-def main():
+def start_mtd():
     rules = load_yara_rules()
     if not rules:
         return
@@ -259,4 +260,4 @@ def main():
         print("Shutting down MTD system...")
 
 if __name__ == "__main__":
-    main()
+    start_mtd()
