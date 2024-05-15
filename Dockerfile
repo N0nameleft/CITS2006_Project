@@ -88,5 +88,3 @@ WORKDIR /opt/rapido_bank/security_tools
 # Default command to run when the container starts
 CMD ["bash"]
 
-# Set the script as the entry point
-ENTRYPOINT ["/opt/rapido_bank/security_tools/start_services.sh"]
