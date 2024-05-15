@@ -1,4 +1,4 @@
-import os
+import os 
 import shutil
 import threading
 import yara
@@ -10,7 +10,8 @@ from cipher import generate_key, vigenere_encrypt
 from hashing import simple_hash
 
 # API configuration
-API_KEY = '71167f90aa45e318c20e4708ea715dd76990f263d8b146fa4080b60d10f69c6d'  # do not steal my api key i stg
+#API_KEY = '71167f90aa45e318c20e4708ea715dd76990f263d8b146fa4080b60d10f69c6d'  # do not steal my api key i stg
+API_KEY = os.getenv('YARA_API_KEY')
 API_URL = 'https://www.virustotal.com/vtapi/v2/file/report'
 API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 
@@ -62,7 +63,7 @@ def isolate_file_for_testing(file_path):
     if not os.path.exists(secure_location):
         os.makedirs(secure_location)
     new_path = os.path.join(secure_location, os.path.basename(file_path))
-    if os.path.exists(file_path):  # Check if file still exists before moving
+    if backups_completed and os.path.exists(file_path):  # Check if file still exists before moving        
         shutil.move(file_path, new_path)
         test_malware(new_path)  # Call test_malware function after moving the file
         file_locations[file_path] = new_path
@@ -70,7 +71,7 @@ def isolate_file_for_testing(file_path):
         print(f"Failed to move, file does not exist: {file_path}")
 
 def test_malware(file_path):
-    if backups_completed and "isolated_yara_alerted_files" in file_path:  # Perform this operation only after backups are completed and for isolated files
+    if  "isolated_yara_alerted_files" in file_path:  # Perform this operation only after backups are completed and for isolated files
         file_hash = simple_hash(file_path)
         result = scan_file(file_hash)
         if result:
