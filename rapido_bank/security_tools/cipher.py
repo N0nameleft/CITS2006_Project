@@ -43,14 +43,14 @@ def vigenere_encrypt(plaintext, key):
             encrypted_text += char
     return encrypted_text
 
-def encrypt_dict_values(data, key):
+def encrypt_dict_values(data, key, verbose=False):
     encrypted_data = {}
     for username, password in data.items():
         encrypted_password = vigenere_encrypt(password, key)
         encrypted_data[username] = encrypted_password
     return encrypted_data
 
-def encrypt_file(file_path, delimiter=','):
+def encrypt_file(file_path, delimiter=',', verbose=False):
     while True:
         # Read the header from the file
         data = parse_csv_file(file_path, delimiter)
@@ -59,8 +59,9 @@ def encrypt_file(file_path, delimiter=','):
             header = next(reader)  # Read the header
 
         key = generate_key()
-        encrypted_data = encrypt_dict_values(data, key)
-        print("Key used for encryption:", key)
+        encrypted_data = encrypt_dict_values(data, key, verbose)
+        if verbose:
+            print("Key used for encryption:", key)
 
         # Get the original file name without extension
         file_name = file_path.split('.')[0]
@@ -78,28 +79,20 @@ def encrypt_file(file_path, delimiter=','):
             for username, encrypted_password in encrypted_data.items():
                 writer.writerow([username, encrypted_password])
 
-        print(f"Encrypted data saved to {encrypted_file_path}")
+        if verbose:
+            print(f"Encrypted data saved to {encrypted_file_path}")
 
-        # Wait for 1 hours before re-encrypting
-        time.sleep(3600)  # 1 hours in seconds
+        # Wait for 1 hour before re-encrypting
+        time.sleep(3600)  # 1 hour in seconds
 
 if __name__ == "__main__":
-    file_path = input("Enter the file path: ")
-    delimiter = input("Enter the delimiter (default is ','): ") or ','
-    encrypt_file(file_path, delimiter)
+    import argparse
 
+    parser = argparse.ArgumentParser(description='Encrypt a CSV file.')
+    parser.add_argument('file_path', help='Path to the CSV file to encrypt')
+    parser.add_argument('--delimiter', default=',', help='Delimiter used in the CSV file')
+    parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
+    args = parser.parse_args()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    encrypt_file(args.file_path, delimiter=args.delimiter, verbose=args.verbose)
 
