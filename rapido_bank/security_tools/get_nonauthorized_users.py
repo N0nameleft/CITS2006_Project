@@ -1,4 +1,11 @@
 import pwd
+authorized_users = [
+    'admin', 'charles', 'mathilde', 'diego', 'santiago', 'maria', 'maxwell',
+    'root', 'daemon', 'bin', 'sys', 'sync', 'games', 'man', 'lp', 'mail',
+    'news', 'uucp', 'proxy', 'www-data', 'backup', 'list', 'irc', '_apt',
+    'nobody', 'ubuntu'
+]
+
 
 def get_system_users():
     """Retrieve a list of all users on the system."""
@@ -18,11 +25,5 @@ def check_authorized_users(authorized_users):
         print("No non-authorized users found. All users are authorized.")
 
 if __name__ == "__main__":
-    authorized_users = [
-        'admin', 'charles', 'mathilde', 'diego', 'santiago', 'maria', 'maxwell',
-        'root', 'daemon', 'bin', 'sys', 'sync', 'games', 'man', 'lp', 'mail',
-        'news', 'uucp', 'proxy', 'www-data', 'backup', 'list', 'irc', '_apt',
-        'nobody', 'ubuntu'
-    ]
     check_authorized_users(authorized_users)
 
