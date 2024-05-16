@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y \
     jq \
     && apt-get clean
 
+# Create a symbolic link for python
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
 # Setup Python environment
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
