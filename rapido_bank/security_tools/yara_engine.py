@@ -24,7 +24,7 @@ def scan_directory(rules, directory):
     for root, _, files in os.walk(directory):
         for file in files:
             file_path = os.path.join(root, file)
-            if file.startswith('.') or file == "yara_rules.yar":
+            if file == "yara_rules.yar":
                 continue
             scan_file(rules, file_path, file.startswith('.'))
 
