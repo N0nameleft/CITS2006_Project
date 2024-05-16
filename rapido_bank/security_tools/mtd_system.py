@@ -265,3 +265,6 @@ def start_mtd():
             time.sleep(1)
     except KeyboardInterrupt:
         print("Shutting down MTD system...")
+
+if __name__ == "__main__":
+    start_mtd()
