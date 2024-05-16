@@ -83,22 +83,46 @@ def restore_file(file_path):
 
 
 def rotate_keys():
-    global backups_completed  # Access the global flag
+    """ Rotate keys by re-encrypting data with the latest generated keys from a specified directory. """
+    global backups_completed
+    if not backups_completed:
+        print("Backups not completed. Key rotation deferred.")
+        return
+
+    # Path where the latest keys are stored
+    key_directory = '/opt/rapido_bank/admin/encryption_keys'
     directory_to_encrypt = '/opt/rapido_bank'
-    if backups_completed:  # Perform this operation only after backups are completed
-        new_key = generate_key()
-        try:
-            for filename in os.listdir(directory_to_encrypt):
-                file_path = os.path.join(directory_to_encrypt, filename)
-                with open(file_path, 'r') as file:
-                    file_contents = file.read()
-                encrypted_contents = vigenere_encrypt(file_contents, new_key)
-                with open(file_path, 'w') as file:
-                    file.write(encrypted_contents)
-            # Move the print statement here to confirm completion of the entire directory
-            print(f"\nRotating Keys:\n-> New encryption key generated.\n-> Rotating keys in directory: {directory_to_encrypt}\n-> Re-encrypted {directory_to_encrypt} with new key.")
-        except Exception as e:
-            print(f"\nRotating Keys:\n-> New encryption key generated. \n-> Rotating keys in directory: {directory_to_encrypt}\n-> Failed to encrypt {directory_to_encrypt}: {e}")
+
+    try:
+        for filename in os.listdir(directory_to_encrypt):
+            file_path = os.path.join(directory_to_encrypt, filename)
+            # Ensure the file is not in a directory to skip
+            if any(x in file_path for x in ['backups', 'shared', 'security_tools', 'portfolios']):
+                continue
+
+            # Attempt to find a key file that matches this directory or file
+            possible_key_files = [k for k in os.listdir(key_directory) if 'project_key' in k]
+            if not possible_key_files:
+                print("No encryption keys available.")
+                continue
+
+            # Sort to get the latest key file
+            latest_key_file = sorted(possible_key_files)[-1]
+            key_path = os.path.join(key_directory, latest_key_file)
+            
+            # Read the latest key
+            with open(key_path, 'rb') as kf:
+                key = kf.read()
+
+            # Encrypt the file
+            encrypted_contents = vigenere_encrypt(file_contents, key)  # Assuming vigenere_encrypt can handle binary data
+            with open(file_path, 'wb') as file:
+                file.write(encrypted_contents)
+
+        print(f"Rotated keys using the latest available keys for all files in {directory_to_encrypt}")
+
+    except Exception as e:
+        print(f"Error during key rotation: {e}")
 
 
 def backup_hourly_files():
