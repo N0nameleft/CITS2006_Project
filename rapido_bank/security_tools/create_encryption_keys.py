@@ -1,5 +1,4 @@
 import os
-import shutil
 from datetime import datetime
 from cipher import generate_key, vigenere_encrypt
 
@@ -84,3 +83,4 @@ def initialize_encryption_keys(rapido_bank_dir):
 if __name__ == "__main__":
     rapido_bank_dir = '/opt/rapido_bank'
     initialize_encryption_keys(rapido_bank_dir)
+

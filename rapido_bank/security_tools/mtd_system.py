@@ -36,7 +36,6 @@ def handle_yara_alert(file_path):
     else:
         print(f"No YARA matches or file ignored: {file_path}")
 
-
 def isolate_file_for_testing(file_path):
     """Isolate the suspicious file for further investigation."""
     secure_location = os.path.join(os.path.dirname(__file__), '..', 'isolated_yara_alerted_files')
@@ -46,7 +45,6 @@ def isolate_file_for_testing(file_path):
     shutil.move(file_path, new_path)
     print(f"File isolated to {new_path}")
     return new_path
-
 
 def test_malware(file_path):
     """Test the isolated file for malware."""
@@ -82,8 +80,6 @@ def restore_file(file_path):
     if original_location:
         shutil.move(file_path, original_location)
         print(f"File restored to original location: {original_location}")
-
-
 
 def rotate_keys():
     """ Rotate keys by re-encrypting data with the latest generated keys from a specified directory. """
@@ -130,9 +126,6 @@ def rotate_keys():
 
     except Exception as e:
         print(f"Error during key rotation: {e}")
-
-
-
 
 def backup_hourly_files():
     source_directory = '/opt/rapido_bank/'
@@ -181,8 +174,6 @@ def backup_hourly_files():
         
         # Sleep for an hour before the next backup
         time.sleep(3600)
-
-
 
 def backup_daily_files():
     source_directory = '/opt/rapido_bank/'
@@ -234,8 +225,8 @@ def schedule_key_regeneration(interval_hours=2):
     """Schedule key regeneration every specified number of hours."""
     while True:
         # Assuming these functions accept the directory and admin keys path
-        create_project_key_and_encrypt('/opt/rapido_bank', 'rapido_bank/admin/encryption_keys')
-        create_keys_for_portfolio('/opt/rapido_bank/portfolios', 'rapido_bank/admin/encryption_keys')
+        create_project_key_and_encrypt('/opt/rapido_bank', '/opt/rapido_bank/admin/encryption_keys')
+        create_keys_for_portfolio('/opt/rapido_bank/portfolios', '/opt/rapido_bank/admin/encryption_keys')
         print(f"Keys regenerated, next regeneration in {interval_hours} hours.")
         time.sleep(interval_hours * 3600)
 
@@ -268,3 +259,4 @@ def start_mtd():
 
 if __name__ == "__main__":
     start_mtd()
+
