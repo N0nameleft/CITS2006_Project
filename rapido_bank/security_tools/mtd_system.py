@@ -5,9 +5,9 @@ import yara
 import time
 from datetime import datetime, timedelta
 import requests
-from yara_engine import start_yara_engine
 from cipher import generate_key, vigenere_encrypt
 from create_encryption_keys import create_keys_for_portfolio, create_project_key_and_encrypt
+from yara_engine import load_yara_rules, scan_file, start_yara_engine
 from hashing import simple_hash
 
 # API configuration
@@ -21,77 +21,66 @@ backups_completed = False  # Flag to track if backups have been completed
 
 
 def handle_yara_alert(file_path):
-    global file_locations
+    """Handle actions based on YARA alerts detected in files."""
     print("\nHandling Yara alert for:", file_path)
-    if os.path.exists(file_path):
+    if not os.path.exists(file_path):
+        print(f"File no longer exists at path: {file_path}")
+        return
+
+    rules = load_yara_rules()
+    matches = scan_file(rules, file_path)  # Use the function from yara_engine
+    if matches:
         new_path = isolate_file_for_testing(file_path)
         file_locations[file_path] = new_path
         test_malware(new_path)
     else:
-        print(f"File no longer exists at path: {file_path}")
+        print(f"No YARA matches or file ignored: {file_path}")
 
 def isolate_file_for_testing(file_path):
+    """Isolate the suspicious file for further investigation."""
     secure_location = os.path.join(os.path.dirname(__file__), '..', 'isolated_yara_alerted_files')
     if not os.path.exists(secure_location):
         os.makedirs(secure_location)
     new_path = os.path.join(secure_location, os.path.basename(file_path))
-    if backups_completed and os.path.exists(file_path):  # Check if file still exists before moving        
-        shutil.move(file_path, new_path)
-        test_malware(new_path)  # Call test_malware function after moving the file
-        file_locations[file_path] = new_path
-    else:
-        print(f"Failed to move, file does not exist: {file_path}")
+    shutil.move(file_path, new_path)
+    print(f"File isolated to {new_path}")
+    return new_path
 
 def test_malware(file_path):
-    if  "isolated_yara_alerted_files" in file_path:  # Perform this operation only after backups are completed and for isolated files
-        file_hash = simple_hash(file_path)
-        result = scan_file(file_hash)
-        if result:
-            severity = categorize_result(result)
-            print(f"File: {file_path} - Severity: {severity}")
-            if severity in ['Severe', 'Extreme']:
-                response = input("Delete isolated file? Type 'Accept' to confirm: ")
-                if response == "Accept":
-                    os.remove(file_path)
-                    print("File deleted.")
-            else:
-                response = input("Restore file? Type 'Accept' to confirm: ")
-                if response == "Accept":
-                    restore_file(file_path)
-        else:
-            print(f"Malware test failed for: {file_path}")
-
-def scan_file(file_hash):
-    params = {'apikey': API_KEY, 'resource': file_hash}
-    response = requests.get(API_URL, params=params)
-    if response.status_code == 200:
-        return response.json()
+    """Test the isolated file for malware."""
+    file_hash = simple_hash(file_path)
+    result = scan_file(file_hash)
+    if result:
+        severity = categorize_result(result)
+        print(f"File: {file_path} - Severity: {severity}")
+        handle_severity(file_path, severity)
     else:
-        print(f"Error {response.status_code} scanning file hash {file_hash}: {response.text}")
-        return None
+        print(f"Malware test failed for: {file_path}")
+
+def handle_severity(file_path, severity):
+    """Take action based on the severity of the malware detection."""
+    if severity in ['Severe', 'Extreme']:
+        os.remove(file_path)
+        print("File deleted due to severe threat.")
+    elif severity == 'Mild':
+        restore_file(file_path)
 
 def categorize_result(result):
+    """Categorize the API response into severity levels."""
     if result is None:
         return 'Error: No data available'
-    positives = result.get('positives')
-    total = result.get('total')
-    if positives is None or total is None:
-        return 'Error: Incomplete data'
-    score = positives / total * 100
-    if score == 0:
-        return 'Benign'
-    elif score < 10:
-        return 'Mild'
-    elif score < 20:
-        return 'Severe'
-    else:
-        return 'Extreme'
+    positives = result.get('positives', 0)
+    total = result.get('total', 1)
+    score = (positives / total) * 100
+    return 'Extreme' if score > 20 else 'Severe' if score > 10 else 'Mild' if score > 0 else 'Benign'
 
 def restore_file(file_path):
-    original_location = [k for k, v in file_locations.items() if v == file_path]
+    """Restore the original file location from backup."""
+    original_location = file_locations.get(file_path)
     if original_location:
-        shutil.move(file_path, original_location[0])
-        print(f"File restored to original location: {original_location[0]}")
+        shutil.move(file_path, original_location)
+        print(f"File restored to original location: {original_location}")
+
 
 def rotate_keys():
     global backups_completed  # Access the global flag
@@ -224,20 +213,24 @@ def schedule_key_regeneration(interval_hours=2):
 ### I will fix these issues of the function names####
 
 def start_mtd():
-    rules = load_yara_rules()
-    if not rules:
-        return
+    """Starts the Malware Threat Detection (MTD) system and all associated processes."""
+    print("Initializing MTD system...")
 
-    monitored_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
+    # Start the YARA engine in a separate thread to begin scanning.
+    threading.Thread(target=start_yara_engine, daemon=True).start()
 
-    # Start key rotation in a separate thread
+    # Start automated key rotation for both project-wide and individual portfolios.
     threading.Thread(target=schedule_key_regeneration, args=(2,), daemon=True).start()
-    threading.Thread(target=rotate_keys, args=(), daemon=True).start()
-    threading.Thread(target=backup_daily_files, daemon=True).start()  # Start the daily backup thread
+
+    # Start the routines for rotating encryption keys across sensitive directories.
+    threading.Thread(target=rotate_keys, daemon=True).start()
+
+    # Initiate continuous backup processes: daily and hourly.
+    threading.Thread(target=backup_daily_files, daemon=True).start()
     threading.Thread(target=backup_hourly_files, daemon=True).start()
 
-
     try:
+        # Keep the main thread alive to maintain daemon threads.
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
