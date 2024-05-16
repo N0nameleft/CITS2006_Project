@@ -20,12 +20,13 @@ def encrypt_directory(directory, key, exclusions):
         dirs[:] = [d for d in dirs if os.path.join(root, d) not in exclusions]  # Modify dirs in-place to skip exclusions
         for file in files:
             file_path = os.path.join(root, file)
-            with open(file_path, 'r') as f:
-                content = f.read()
-            encrypted_content = vigenere_encrypt(content, key)
-            with open(file_path, 'w') as f:
-                f.write(encrypted_content)
-            print(f"Encrypted {file_path}")
+            if not any(file_path.startswith(excluded) for excluded in exclusions):
+                with open(file_path, 'r') as f:
+                    content = f.read()
+                encrypted_content = vigenere_encrypt(content, key)
+                with open(file_path, 'w') as f:
+                    f.write(encrypted_content)
+                print(f"Encrypted {file_path}")
 
 def create_keys_for_portfolio(portfolio_dir, admin_dir):
     """Create individual keys for each portfolio and copy them to the admin directory."""
@@ -41,7 +42,12 @@ def create_keys_for_portfolio(portfolio_dir, admin_dir):
 
 if __name__ == "__main__":
     rapido_bank_dir = 'rapido_bank'
-    exclusions = [os.path.join(rapido_bank_dir, 'shared'), os.path.join(rapido_bank_dir, 'backups'), os.path.join(rapido_bank_dir, 'portfolios')]
+    exclusions = [
+        os.path.join(rapido_bank_dir, 'shared'),
+        os.path.join(rapido_bank_dir, 'backups'),
+        os.path.join(rapido_bank_dir, 'portfolios'),
+        os.path.join(rapido_bank_dir, 'security_tools')  # Exclude the security_tools directory
+    ]
     admin_keys_dir = os.path.join(rapido_bank_dir, 'admin', 'encryption_keys')
     portfolios_dir = os.path.join(rapido_bank_dir, 'portfolios')
 
