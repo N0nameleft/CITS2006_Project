@@ -31,10 +31,21 @@ def revoke_permissions(non_authorized_users):
     """Revoke permissions of non-authorized users by locking their accounts."""
     for user in non_authorized_users:
         try:
+            # Lock the account
             subprocess.run(['usermod', '-L', user], check=True)
-            print(f"Locked account for user: {user}")
+            
+            # Expire the account immediately
+            subprocess.run(['usermod', '--expiredate', '1', user], check=True)
+            
+            # Remove the user from all groups
+            subprocess.run(['usermod', '-G', '', user], check=True)
+            
+            # Change the user's shell to /usr/sbin/nologin
+            subprocess.run(['usermod', '-s', '/usr/sbin/nologin', user], check=True)
+            
+            print(f"Revoked permissions for user: {user}")
         except subprocess.CalledProcessError as e:
-            print(f"Failed to lock account for user: {user}. Error: {e}")
+            print(f"Failed to revoke permissions for user: {user}. Error: {e}")
 
 if __name__ == "__main__":
     non_authorized_users = check_authorized_users(authorized_users)
