@@ -32,12 +32,8 @@ COPY rapido_bank /opt/rapido_bank
 WORKDIR /opt/rapido_bank
 RUN chmod +x /opt/rapido_bank/security_tools/start_services.sh
 
-
 # Build and install the C extension
 WORKDIR /opt/rapido_bank/security_tools
-# RUN python3 -m pip install build
-# RUN python3 -m build
-# RUN python3 -m pip install dist/*.whl
 RUN gcc readmem.c -o readmem
 RUN gcc test_malicious_payload.c -o test_malicious_payload
 
@@ -77,11 +73,13 @@ RUN chown -R charles:ceo /opt/rapido_bank \
 
 # Change ownership to the admin user for other components
 RUN chown -R admin:admin /opt/rapido_bank/security_tools \
+    && chmod -R 750 /opt/rapido_bank/security_tools \
+    && setfacl -R -m g:ceo:rx /opt/rapido_bank/security_tools \
     && chown -R admin:admin /opt/rapido_bank/logs \
     && chown -R admin:admin /opt/rapido_bank/backups \
     && chmod -R 700 /opt/rapido_bank/backups \
     && chown -R admin:admin /opt/rapido_bank/admin \
-    && chmod -R 700 /opt/rapido_bank/admin
+    && chmod -R 700 /opt/rapido_bank/admin 
 
 # Create a non-authorized user for testing
 RUN useradd -m -s /bin/bash mike && \
@@ -96,3 +94,4 @@ ENV RAPIDO_HOME /opt/rapido_bank
 WORKDIR /opt/rapido_bank/security_tools
 # Default command to run when the container starts
 CMD ["bash"]
+
