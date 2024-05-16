@@ -342,6 +342,13 @@ def start_mtd():
         # Keep the main thread alive to maintain daemon threads.
         while True:
             time.sleep(1)
+            # time.sleep(60 * 60)
+            
+            time.sleep(10)
+            recommendations = generate_security_recommendations()
+            print("\n\n\n\n---------------------------------Security Recommendations:----------------------------\n")
+            for recommendation in recommendations:
+                print(f"- {recommendation}")
     except KeyboardInterrupt:
         print("Shutting down MTD system...")
 
@@ -350,11 +357,15 @@ if __name__ == "__main__":
     
     """----------security recommendation------------"""
     # Generate and print security recommendations every hour
-    while True:
-        time.sleep(60 * 60)
-        recommendations = generate_security_recommendations()
-        print("\nSecurity Recommendations:")
-        for recommendation in recommendations:
-            print(f"- {recommendation}")
+    try:
+        while True:
+            # time.sleep(60 * 60)
+            time.sleep(10)
+            recommendations = generate_security_recommendations()
+            print("\n\n\n\n---------------------------------Security Recommendations:----------------------------\n")
+            for recommendation in recommendations:
+                print(f"- {recommendation}")
+    except KeyboardInterrupt:
+        print("Shutting down security recommendation...")
     """---------------------------------------------"""
 
