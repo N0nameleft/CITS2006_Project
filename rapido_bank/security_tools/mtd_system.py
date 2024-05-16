@@ -9,6 +9,7 @@ from create_encryption_keys import create_keys_for_portfolio, create_project_key
 from yara_engine import load_yara_rules, scan_file, start_yara_engine
 from hashing import hash_file
 from get_nonauthorized_users import *
+from security_recom import log_event
 
 # API configuration
 API_KEY = os.getenv('YARA_API_KEY')
@@ -17,19 +18,7 @@ API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 
 file_locations = {}
 backups_completed = False  # Flag to track if backups have been completed
-"""----------security recommendation------------"""
 
-def log_event(event_type, details, log_file='/opt/rapido_bank/logs/important_logs/security_events.log'):
-    """Log security events with their details."""
-    event = {
-        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'event_type': event_type,
-        'details': details
-    }
-    with open(log_file, 'a') as lf:
-        lf.write(f"{event['timestamp']} - {event['event_type']} - {event['details']}\n")
-    print(f"Logged event: {event_type} - {details}")
-"""---------------------------------------------"""
 def simple_hash(file_path):
     """A simplified wrapper to use hash_file from hashing.py."""
     return hash_file(file_path)

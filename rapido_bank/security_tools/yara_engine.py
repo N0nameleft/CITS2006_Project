@@ -2,6 +2,7 @@ import subprocess
 import yara
 import os
 import psutil
+from security_recom import log_event
 
 def load_yara_rules():
     try:
@@ -20,6 +21,9 @@ def scan_file(rules, file_path, is_hidden=False, verbose=False):
     except yara.Error as e:
         if verbose:
             print(f"Error scanning file {file_path}: {e}")
+            """----------security recommendation------------"""
+            log_event('YARA Scanning Error', f"An error occurred while trying to scan {file_path}.")
+            """---------------------------------------------"""
 
 def scan_directory(rules, directory, verbose=False):
     for root, _, files in os.walk(directory):

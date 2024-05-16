@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from cipher import generate_key, vigenere_encrypt
+from security_recom import log_event
 
 def save_key(key, filename, verbose=False):
     """Save the encryption key to a specified file."""
@@ -15,9 +16,17 @@ def save_key(key, filename, verbose=False):
     except PermissionError:
         if verbose:
             print(f"Permission denied: {filename}")
+            """----------security recommendation------------"""
+            log_event('Save Key Permission Denied', f"Current user does not have permission to {filename}, save key failed")
+            """---------------------------------------------"""
+
     except Exception as e:
         if verbose:
             print(f"Error saving key to {filename}: {e}")
+            """----------security recommendation------------"""
+            log_event('Save Key Error', f"An error occurred while saving the key to {filename}.")
+            """---------------------------------------------"""
+
 
 def get_timestamped_filename(base_dir, prefix, extension='key'):
     """Generate a timestamped filename for storing keys."""
@@ -43,9 +52,15 @@ def encrypt_directory(directory, key, exclusions=None, verbose=False):
                 except PermissionError:
                     if verbose:
                         print(f"Permission denied: {file_path}")
+                        """----------security recommendation------------"""
+                        log_event('Encryption Permission Denied', f"Current user does not have permission to {file_path}, encryption failed")
+                        """---------------------------------------------"""
                 except Exception as e:
                     if verbose:
                         print(f"Error encrypting {file_path}: {e}")
+                        """----------security recommendation------------"""
+                        log_event('Encryption Error', f"An error occurred while trying to encrypt {file_path}.")
+                        """---------------------------------------------"""
 
 def create_keys_for_portfolio(portfolio_dir, admin_dir, verbose=False):
     """Create individual keys for each portfolio and copy them to the admin directory."""

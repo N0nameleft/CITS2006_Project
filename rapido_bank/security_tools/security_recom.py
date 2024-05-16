@@ -2,7 +2,18 @@ import argparse
 from datetime import datetime
 
 # Define the path to the log file
-LOG_FILE_PATH = 'security_events.log'
+LOG_FILE_PATH = '/opt/rapido_bank/logs/important_logs/security_events.log'
+
+def log_event(event_type, details, log_file='/opt/rapido_bank/logs/important_logs/security_events.log'):
+    """Log security events with their details."""
+    event = {
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'event_type': event_type,
+        'details': details
+    }
+    with open(log_file, 'a') as lf:
+        lf.write(f"{event['timestamp']} - {event['event_type']} - {event['details']}\n")
+    print(f"Logged event: {event_type} - {details}")
 
 def parse_log_file(log_file_path):
     """Parse the log file and return a list of event dictionaries."""
@@ -67,6 +78,12 @@ def generate_security_recommendations(events):
             recommendations.append(f"Investigate the cause of the key rotation error: {details}")
         elif event_type == 'Unauthorized User':
             recommendations.append(f"Revoke permissions and investigate activities of unauthorized user: {details}")
+        elif event_type == 'Save Key Permission Denied' or event_type == 'Encryption Permission Denied':
+            recommendations.append(f"Check current user is logged in: {details}")
+        elif event_type == 'Save Key Error' or event_type == 'Encryption Error' or event_type == 'YARA Scanning Error':
+            recommendations.append(f"Check file/directory: {details}")
+
+
 
     return recommendations
 
