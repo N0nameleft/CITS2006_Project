@@ -17,7 +17,19 @@ API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 
 file_locations = {}
 backups_completed = False  # Flag to track if backups have been completed
+"""----------security recommendation------------"""
 
+def log_event(event_type, details, log_file='/opt/rapido_bank/logs/important_logs/security_events.log'):
+    """Log security events with their details."""
+    event = {
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'event_type': event_type,
+        'details': details
+    }
+    with open(log_file, 'a') as lf:
+        lf.write(f"{event['timestamp']} - {event['event_type']} - {event['details']}\n")
+    print(f"Logged event: {event_type} - {details}")
+"""---------------------------------------------"""
 def simple_hash(file_path):
     """A simplified wrapper to use hash_file from hashing.py."""
     return hash_file(file_path)
@@ -26,9 +38,16 @@ def handle_yara_alert(file_path, verbose):
     """Handle actions based on YARA alerts detected in files."""
     if verbose:
         print("\nHandling Yara alert for:", file_path)
+        """----------security recommendation------------"""
+        log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+        """---------------------------------------------"""
+        
     if not os.path.exists(file_path):
         if verbose:
             print(f"File no longer exists at path: {file_path}")
+            """----------security recommendation------------"""
+            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            """---------------------------------------------"""
         return
 
     rules = load_yara_rules()
@@ -39,6 +58,9 @@ def handle_yara_alert(file_path, verbose):
         test_malware(new_path, verbose)
     elif verbose:
         print(f"No YARA matches or file ignored: {file_path}")
+        """----------security recommendation------------"""
+        log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+        """---------------------------------------------"""
 
 def isolate_file_for_testing(file_path, verbose):
     """Isolate the suspicious file for further investigation."""
@@ -49,6 +71,9 @@ def isolate_file_for_testing(file_path, verbose):
     shutil.move(file_path, new_path)
     if verbose:
         print(f"File isolated to {new_path}")
+        """----------security recommendation------------"""
+        log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+        """---------------------------------------------"""
     return new_path
 
 def test_malware(file_path, verbose):
@@ -59,9 +84,15 @@ def test_malware(file_path, verbose):
         severity = categorize_result(result)
         if verbose:
             print(f"File: {file_path} - Severity: {severity}")
+            """----------security recommendation------------"""
+            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            """---------------------------------------------"""
         handle_severity(file_path, severity, verbose)
     elif verbose:
         print(f"Malware test failed for: {file_path}")
+        """----------security recommendation------------"""
+        log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+        """---------------------------------------------"""
 
 def handle_severity(file_path, severity, verbose):
     """Take action based on the severity of the malware detection."""
@@ -69,6 +100,9 @@ def handle_severity(file_path, severity, verbose):
         os.remove(file_path)
         if verbose:
             print("File deleted due to severe threat.")
+            """----------security recommendation------------"""
+            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            """---------------------------------------------"""
     elif severity == 'Mild':
         restore_file(file_path, verbose)
 
@@ -88,6 +122,9 @@ def restore_file(file_path, verbose):
         shutil.move(file_path, original_location)
         if verbose:
             print(f"File restored to original location: {original_location}")
+            """----------security recommendation------------"""
+            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            """---------------------------------------------"""
 
 def rotate_keys(verbose):
     """ Rotate keys by re-encrypting data with the latest generated keys from a specified directory. """
@@ -95,6 +132,9 @@ def rotate_keys(verbose):
     if not backups_completed:
         if verbose:
             print("Backups not completed. Key rotation deferred.")
+            """----------security recommendation------------"""
+            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            """---------------------------------------------"""
         return
 
     # Path where the latest keys are stored
@@ -115,6 +155,9 @@ def rotate_keys(verbose):
                 if not possible_key_files:
                     if verbose:
                         print("No encryption keys available.")
+                        """----------security recommendation------------"""
+                        log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+                        """---------------------------------------------"""
                     continue
 
                 # Sort to get the latest key file
@@ -134,10 +177,16 @@ def rotate_keys(verbose):
 
         if verbose:
             print(f"Rotated keys using the latest available keys for all files in {directory_to_encrypt}")
+            """----------security recommendation------------"""
+            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            """---------------------------------------------"""
 
     except Exception as e:
         if verbose:
             print(f"Error during key rotation: {e}")
+            """----------security recommendation------------"""
+            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            """---------------------------------------------"""
 
 def backup_hourly_files(verbose):
     source_directory = '/opt/rapido_bank/'
@@ -181,10 +230,16 @@ def backup_hourly_files(verbose):
                 
             if verbose:
                 print(f"\nHourly Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Hourly backup completed.")
+                """----------security recommendation------------"""
+                log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+                """---------------------------------------------"""
 
         except Exception as e:
             if verbose:
                 print(f"\nHourly Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Failed to complete backup: {e}")
+                """----------security recommendation------------"""
+                log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+                """---------------------------------------------"""
         
         # Sleep for an hour before the next backup
         time.sleep(3600)
@@ -229,10 +284,16 @@ def backup_daily_files(verbose):
             
             if verbose:
                 print(f"\nDaily Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Daily backup completed.")
+                """----------security recommendation------------"""
+                log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+                """---------------------------------------------"""
     
         except Exception as e:
             if verbose:
                 print(f"\nDaily Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Failed to create daily backup: {e}")
+                """----------security recommendation------------"""
+                log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+                """---------------------------------------------"""
 
         # Sleep until the next backup time
         time.sleep(time_to_sleep)
@@ -245,6 +306,9 @@ def schedule_key_regeneration(interval_hours=2, verbose=False):
         create_keys_for_portfolio('/opt/rapido_bank/portfolios', '/opt/rapido_bank/admin/encryption_keys')
         if verbose:
             print(f"Keys regenerated, next regeneration in {interval_hours} hours.")
+            """----------security recommendation------------"""
+            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            """---------------------------------------------"""
         time.sleep(interval_hours * 3600)
 
 def start_mtd(verbose=False):
@@ -274,6 +338,9 @@ def start_mtd(verbose=False):
         revoke_permissions(non_authorized_users)
         if verbose:
             print(f"Revoked permissions for non-authorized users: {non_authorized_users}")
+            """----------security recommendation------------"""
+            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            """---------------------------------------------"""
 
     try:
         # Keep the main thread alive to maintain daemon threads.
