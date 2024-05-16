@@ -82,5 +82,5 @@ def initialize_encryption_keys(rapido_bank_dir):
     create_keys_for_portfolio(portfolios_dir, admin_keys_dir)
 
 if __name__ == "__main__":
-    rapido_bank_dir = 'rapido_bank'
+    rapido_bank_dir = '/opt/rapido_bank'
     initialize_encryption_keys(rapido_bank_dir)
