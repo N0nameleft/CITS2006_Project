@@ -1,73 +1,57 @@
 import os
 import shutil
-from cryptography.fernet import Fernet
-import time
 from datetime import datetime
-
-def generate_key():
-    """ Generate and return a Fernet encryption key. """
-    return Fernet.generate_key()
+from cipher import generate_key, vigenere_encrypt
 
 def save_key(key, filename):
-    """ Save the key to a specified file. """
-    with open(filename, 'wb') as file:
+    """Save the encryption key to a specified file."""
+    with open(filename, 'w') as file:
         file.write(key)
     print(f"Key saved to {filename}")
 
-def get_timestamped_filename(base_dir, prefix, extension):
-    """ Generate a timestamped filename for storing keys. """
-    timestamp = datetime.now().strftime('%Y%m%d%H%M')
+def get_timestamped_filename(base_dir, prefix, extension='key'):
+    """Generate a timestamped filename for storing keys."""
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     return os.path.join(base_dir, f"{prefix}_{timestamp}.{extension}")
 
-def encrypt_directory(directory, key, key_path):
-    """ Encrypt all files in a given directory with the provided key and log the encryption. """
-    fernet = Fernet(key)
-    print(f"Starting encryption of directory {directory} using key {key_path}")
-    for root, dirs, files in os.walk(directory):
+def encrypt_directory(directory, key, exclusions):
+    """Encrypt all files in a directory, excluding specified subdirectories."""
+    for root, dirs, files in os.walk(directory, topdown=True):
+        dirs[:] = [d for d in dirs if os.path.join(root, d) not in exclusions]  # Modify dirs in-place to skip exclusions
         for file in files:
             file_path = os.path.join(root, file)
-            with open(file_path, 'rb') as file:
-                original = file.read()
-            encrypted = fernet.encrypt(original)
-            with open(file_path, 'wb') as encrypted_file:
-                encrypted_file.write(encrypted)
+            with open(file_path, 'r') as f:
+                content = f.read()
+            encrypted_content = vigenere_encrypt(content, key)
+            with open(file_path, 'w') as f:
+                f.write(encrypted_content)
             print(f"Encrypted {file_path}")
-    print(f"Encryption complete for directory {directory}")
 
-def start_key_rotation():
-    """ Start the key rotation for project and portfolios, and encrypt directories. """
-    threading.Thread(target=lambda: create_project_key_and_encrypt('some_project_directory'), daemon=True).start()
-    threading.Thread(target=lambda: create_portfolio_keys_and_encrypt('portfolios'), daemon=True).start()
-
-def create_project_key_and_encrypt(directory):
-    while True:
-        key = generate_key()
-        key_path = get_timestamped_filename('admin/encryption_keys', 'project_key', 'key')
-        save_key(key, key_path)
-        encrypt_directory(directory, key, key_path)
-        print(f"Project key regenerated and applied. Next update in 4 hours.")
-        time.sleep(14400)
-
-def create_portfolio_keys_and_encrypt(portfolio_dir):
-    while True:
-        for person in os.listdir(portfolio_dir):
-            person_dir = os.path.join(portfolio_dir, person)
-            if os.path.isdir(person_dir):
-                key = generate_key()
-                key_path = get_timestamped_filename(person_dir, 'encryption_key', 'key')
-                save_key(key, key_path)
-                encrypt_directory(person_dir, key, key_path)
-                admin_key_path = get_timestamped_filename('admin/encryption_keys', f'{person}_key', 'key')
-                shutil.copy(key_path, admin_key_path)
-                print(f"Encryption key for {person} regenerated and applied.")
-        print("All portfolio keys regenerated. Next update in 4 hours.")
-        time.sleep(14400)
+def create_keys_for_portfolio(portfolio_dir, admin_dir):
+    """Create individual keys for each portfolio and copy them to the admin directory."""
+    for person in os.listdir(portfolio_dir):
+        person_dir = os.path.join(portfolio_dir, person)
+        if os.path.isdir(person_dir):
+            key = generate_key()
+            person_key_path = get_timestamped_filename(person_dir, 'encryption_key')
+            admin_key_path = get_timestamped_filename(admin_dir, f'{person}_encryption_key')
+            save_key(key, person_key_path)
+            shutil.copy(person_key_path, admin_key_path)
+            print(f"Key for {person} created and copied to admin directory.")
 
 if __name__ == "__main__":
-    print("Starting MTD system key rotation and encryption...")
-    start_key_rotation()
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("Shutting down MTD system...")
+    rapido_bank_dir = 'rapido_bank'
+    exclusions = [os.path.join(rapido_bank_dir, 'shared'), os.path.join(rapido_bank_dir, 'backups'), os.path.join(rapido_bank_dir, 'portfolios')]
+    admin_keys_dir = os.path.join(rapido_bank_dir, 'admin', 'encryption_keys')
+    portfolios_dir = os.path.join(rapido_bank_dir, 'portfolios')
+
+    # Generate and save the master key for the project
+    master_key = generate_key()
+    master_key_path = get_timestamped_filename(admin_keys_dir, 'master_project_key')
+    save_key(master_key, master_key_path)
+    
+    # Encrypt the project directory with exclusions
+    encrypt_directory(rapido_bank_dir, master_key, exclusions)
+
+    # Handle portfolio keys
+    create_keys_for_portfolio(portfolios_dir, admin_keys_dir)
