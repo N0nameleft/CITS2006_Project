@@ -25,12 +25,17 @@ def encrypt_directory(directory, key, exclusions=None):
         for file in files:
             file_path = os.path.join(root, file)
             if not any(file_path.startswith(excluded) for excluded in exclusions):
-                with open(file_path, 'r') as f:
-                    content = f.read()
-                encrypted_content = vigenere_encrypt(content, key)
-                with open(file_path, 'w') as f:
-                    f.write(encrypted_content)
-                print(f"Encrypted {file_path}")
+                try:
+                    with open(file_path, 'r') as f:
+                        content = f.read()
+                    encrypted_content = vigenere_encrypt(content, key)
+                    with open(file_path, 'w') as f:
+                        f.write(encrypted_content)
+                    print(f"Encrypted {file_path}")
+                except PermissionError:
+                    print(f"Permission denied: {file_path}")
+                except Exception as e:
+                    print(f"Error encrypting {file_path}: {e}")
 
 def create_keys_for_portfolio(portfolio_dir, admin_dir):
     """Create individual keys for each portfolio and copy them to the admin directory."""
