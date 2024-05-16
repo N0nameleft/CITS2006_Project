@@ -1,4 +1,6 @@
 import pwd
+import subprocess
+
 authorized_users = [
     'admin', 'charles', 'mathilde', 'diego', 'santiago', 'maria', 'maxwell',
     'root', 'daemon', 'bin', 'sys', 'sync', 'games', 'man', 'lp', 'mail',
@@ -24,6 +26,17 @@ def check_authorized_users(authorized_users):
     else:
         print("No non-authorized users found. All users are authorized.")
 
+def revoke_permissions(non_authorized_users):
+    """Revoke permissions of non-authorized users by locking their accounts."""
+    for user in non_authorized_users:
+        try:
+            subprocess.run(['usermod', '-L', user], check=True)
+            print(f"Locked account for user: {user}")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to lock account for user: {user}. Error: {e}")
+
 if __name__ == "__main__":
-    check_authorized_users(authorized_users)
+    non_authorized_users = check_authorized_users(authorized_users)
+    if non_authorized_users:
+        revoke_permissions(non_authorized_users)
 
