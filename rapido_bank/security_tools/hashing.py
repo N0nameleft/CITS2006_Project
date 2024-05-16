@@ -101,7 +101,7 @@ def monitor_folder(folder_path):
         previous_hashes = current_hashes
 
 if __name__ == "__main__":
-    folder_to_monitor = "../"
+    folder_to_monitor = "/opt/rapido_bank/"
     monitor_folder(folder_to_monitor)
 
 """tkinter"""
