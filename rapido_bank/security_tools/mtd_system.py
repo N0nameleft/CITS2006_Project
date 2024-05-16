@@ -46,7 +46,7 @@ def handle_yara_alert(file_path, verbose):
         if verbose:
             print(f"File no longer exists at path: {file_path}")
             """----------security recommendation------------"""
-            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            log_event('YARA Alert - file non-exist', f"File {file_path} matched YARA rules, but does not exist anymore.")
             """---------------------------------------------"""
         return
 
@@ -59,7 +59,7 @@ def handle_yara_alert(file_path, verbose):
     elif verbose:
         print(f"No YARA matches or file ignored: {file_path}")
         """----------security recommendation------------"""
-        log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+        log_event('YARA Alert - no matching rules', f"File {file_path} raised YARA alert but did not match any rules.")
         """---------------------------------------------"""
 
 def isolate_file_for_testing(file_path, verbose):
@@ -72,7 +72,7 @@ def isolate_file_for_testing(file_path, verbose):
     if verbose:
         print(f"File isolated to {new_path}")
         """----------security recommendation------------"""
-        log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+        log_event('Isolated File', f"File {file_path} has been isolated due to highly suspicious.")
         """---------------------------------------------"""
     return new_path
 
@@ -85,13 +85,13 @@ def test_malware(file_path, verbose):
         if verbose:
             print(f"File: {file_path} - Severity: {severity}")
             """----------security recommendation------------"""
-            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            log_event('Malware Test', f"File {file_path} tested positive. Severity: {severity}.")
             """---------------------------------------------"""
         handle_severity(file_path, severity, verbose)
     elif verbose:
         print(f"Malware test failed for: {file_path}")
         """----------security recommendation------------"""
-        log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+        log_event('Malware Test - Failed', f"File {file_path} was not able to be detected by malware test.")
         """---------------------------------------------"""
 
 def handle_severity(file_path, severity, verbose):
@@ -101,7 +101,7 @@ def handle_severity(file_path, severity, verbose):
         if verbose:
             print("File deleted due to severe threat.")
             """----------security recommendation------------"""
-            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            log_event('File Deletion', f"File {file_path} deleted due to severity: {severity}.")    
             """---------------------------------------------"""
     elif severity == 'Mild':
         restore_file(file_path, verbose)
@@ -123,7 +123,7 @@ def restore_file(file_path, verbose):
         if verbose:
             print(f"File restored to original location: {original_location}")
             """----------security recommendation------------"""
-            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            log_event('File Restoration', f"File {file_path} restored to original location: {original_location}.")
             """---------------------------------------------"""
 
 def rotate_keys(verbose):
@@ -133,7 +133,7 @@ def rotate_keys(verbose):
         if verbose:
             print("Backups not completed. Key rotation deferred.")
             """----------security recommendation------------"""
-            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            log_event('Backup Needed', "Backups not completed. Key rotation deferred.")
             """---------------------------------------------"""
         return
 
@@ -156,7 +156,7 @@ def rotate_keys(verbose):
                     if verbose:
                         print("No encryption keys available.")
                         """----------security recommendation------------"""
-                        log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+                        log_event('Key not Found', "key not found.")
                         """---------------------------------------------"""
                     continue
 
@@ -178,14 +178,14 @@ def rotate_keys(verbose):
         if verbose:
             print(f"Rotated keys using the latest available keys for all files in {directory_to_encrypt}")
             """----------security recommendation------------"""
-            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            log_event('Key Rotation', f"Keys rotated for all files in {directory_to_encrypt}.")
             """---------------------------------------------"""
 
     except Exception as e:
         if verbose:
             print(f"Error during key rotation: {e}")
             """----------security recommendation------------"""
-            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            log_event('Key Rotation Error', f"Error during key rotation: {e}")
             """---------------------------------------------"""
 
 def backup_hourly_files(verbose):
@@ -231,14 +231,14 @@ def backup_hourly_files(verbose):
             if verbose:
                 print(f"\nHourly Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Hourly backup completed.")
                 """----------security recommendation------------"""
-                log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+                log_event('Hourly Backup', 'Hourly backup completed successfully.')
                 """---------------------------------------------"""
 
         except Exception as e:
             if verbose:
                 print(f"\nHourly Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Failed to complete backup: {e}")
                 """----------security recommendation------------"""
-                log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+                log_event('Hourly Backup Error', f"Failed to complete backup: {e}")
                 """---------------------------------------------"""
         
         # Sleep for an hour before the next backup
@@ -285,14 +285,14 @@ def backup_daily_files(verbose):
             if verbose:
                 print(f"\nDaily Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Daily backup completed.")
                 """----------security recommendation------------"""
-                log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+                log_event('Daily Backup', 'Daily backup completed successfully.')
                 """---------------------------------------------"""
     
         except Exception as e:
             if verbose:
                 print(f"\nDaily Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Failed to create daily backup: {e}")
                 """----------security recommendation------------"""
-                log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+                log_event('Daily Backup Error', f"Failed to create daily backup: {e}")
                 """---------------------------------------------"""
 
         # Sleep until the next backup time
@@ -307,7 +307,7 @@ def schedule_key_regeneration(interval_hours=2, verbose=False):
         if verbose:
             print(f"Keys regenerated, next regeneration in {interval_hours} hours.")
             """----------security recommendation------------"""
-            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            log_event('Key Regeneration', f"Keys regenerated, next regeneration in {interval_hours} hours.")
             """---------------------------------------------"""
         time.sleep(interval_hours * 3600)
 
@@ -339,7 +339,7 @@ def start_mtd(verbose=False):
         if verbose:
             print(f"Revoked permissions for non-authorized users: {non_authorized_users}")
             """----------security recommendation------------"""
-            log_event('YARA Alert', f"File {file_path} matched YARA rules.")
+            log_event('Unauthorized User', f"User {non_authorized_users} is not authorised.")
             """---------------------------------------------"""
 
     try:
