@@ -90,6 +90,9 @@ RUN mkdir -p /opt/rapido_bank/security_tools \
     && chown -R admin:admin /opt/rapido_bank/admin \
     && chmod -R 700 /opt/rapido_bank/admin
 
+# Grant admin access to all files and directories
+RUN setfacl -R -m u:admin:rwx /opt/rapido_bank
+
 # Create a non-authorized user for testing
 RUN useradd -m -s /bin/bash mike && \
     echo "mike:testpassword" | chpasswd
@@ -100,7 +103,7 @@ USER admin
 # Define environment variables if needed
 ENV RAPIDO_HOME /opt/rapido_bank
 
-WORKDIR /opt/rapido_bank/security_tools
+WORKDIR /opt/rapido_bank
 # Default command to run when the container starts
 CMD ["bash"]
 
