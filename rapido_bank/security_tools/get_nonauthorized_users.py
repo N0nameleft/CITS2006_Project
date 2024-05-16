@@ -8,7 +8,6 @@ authorized_users = [
     'nobody', 'ubuntu'
 ]
 
-
 def get_system_users():
     """Retrieve a list of all users on the system."""
     users = [user.pw_name for user in pwd.getpwall()]
@@ -25,6 +24,8 @@ def check_authorized_users(authorized_users):
             print(f"- {user}")
     else:
         print("No non-authorized users found. All users are authorized.")
+    
+    return non_authorized_users
 
 def revoke_permissions(non_authorized_users):
     """Revoke permissions of non-authorized users by locking their accounts."""
@@ -37,6 +38,7 @@ def revoke_permissions(non_authorized_users):
 
 if __name__ == "__main__":
     non_authorized_users = check_authorized_users(authorized_users)
+
     if non_authorized_users:
         revoke_permissions(non_authorized_users)
 
