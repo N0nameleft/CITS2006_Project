@@ -1,10 +1,11 @@
 import argparse
 from datetime import datetime
+import os
 
 # Define the path to the log file
 LOG_FILE_PATH = '/opt/rapido_bank/logs/important_logs/security_events.log'
 
-def log_event(event_type, details, log_file='/opt/rapido_bank/logs/important_logs/security_events.log'):
+def log_event(event_type, details, log_file=LOG_FILE_PATH):
     """Log security events with their details."""
     event = {
         'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -94,6 +95,8 @@ def main(log_file_path):
     print("\nSecurity Recommendations:")
     for recommendation in recommendations:
         print(f"- {recommendation}")
+    with open(log_file_path, 'w') as log_file:
+        log_file.truncate()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate security recommendations based on MTD log events.')
