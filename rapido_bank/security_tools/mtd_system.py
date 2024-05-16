@@ -1,14 +1,12 @@
 import os 
 import shutil
 import threading
-import yara
 import time
 from datetime import datetime, timedelta
-import requests
 from cipher import generate_key, vigenere_encrypt
 from create_encryption_keys import create_keys_for_portfolio, create_project_key_and_encrypt
 from yara_engine import load_yara_rules, scan_file, start_yara_engine
-from hashing import simple_hash
+from hashing import hash_file
 
 # API configuration
 API_KEY = os.getenv('YARA_API_KEY')
@@ -18,7 +16,9 @@ API_UPLOAD_URL = 'https://www.virustotal.com/vtapi/v2/file/scan'
 file_locations = {}
 backups_completed = False  # Flag to track if backups have been completed
 
-
+def simple_hash(file_path):
+    """A simplified wrapper to use hash_file from hashing.py."""
+    return hash_file(file_path)
 
 def handle_yara_alert(file_path):
     """Handle actions based on YARA alerts detected in files."""
@@ -36,6 +36,7 @@ def handle_yara_alert(file_path):
     else:
         print(f"No YARA matches or file ignored: {file_path}")
 
+
 def isolate_file_for_testing(file_path):
     """Isolate the suspicious file for further investigation."""
     secure_location = os.path.join(os.path.dirname(__file__), '..', 'isolated_yara_alerted_files')
@@ -45,6 +46,7 @@ def isolate_file_for_testing(file_path):
     shutil.move(file_path, new_path)
     print(f"File isolated to {new_path}")
     return new_path
+
 
 def test_malware(file_path):
     """Test the isolated file for malware."""
@@ -82,6 +84,7 @@ def restore_file(file_path):
         print(f"File restored to original location: {original_location}")
 
 
+
 def rotate_keys():
     """ Rotate keys by re-encrypting data with the latest generated keys from a specified directory. """
     global backups_completed
@@ -113,13 +116,13 @@ def rotate_keys():
                 key_path = os.path.join(key_directory, latest_key_file)
                 
                 # Read the latest key
-                with open(key_path, 'rb') as kf:
+                with open(key_path, 'r') as kf:
                     key = kf.read()
 
                 # Encrypt the file
                 with open(file_path, 'r') as file:
                     file_contents = file.read()
-                encrypted_contents = vigenere_encrypt(file_contents, key)  # Assuming vigenere_encrypt can handle binary data
+                encrypted_contents = vigenere_encrypt(file_contents, key)
                 with open(file_path, 'w') as file:
                     file.write(encrypted_contents)
 
@@ -127,6 +130,8 @@ def rotate_keys():
 
     except Exception as e:
         print(f"Error during key rotation: {e}")
+
+
 
 
 def backup_hourly_files():
@@ -138,7 +143,6 @@ def backup_hourly_files():
         os.makedirs(backup_directory)
     
     while True:
-        
         try:
             # Delete any existing backup directories ending with '_hb'
             for dirname in os.listdir(backup_directory):
@@ -148,7 +152,7 @@ def backup_hourly_files():
                         shutil.rmtree(dir_path)
             
             # Create the directory for the current hourly backup
-            hourly_backup_dir = os.path.join(backup_directory, f"{datetime.now().strftime('%Y%m%d%H%m%s')}_hb")
+            hourly_backup_dir = os.path.join(backup_directory, f"{datetime.now().strftime('%Y%m%d%H%M%S')}_hb")
             os.makedirs(hourly_backup_dir)
             
             for dirpath, dirnames, filenames in os.walk(source_directory):
@@ -172,10 +176,8 @@ def backup_hourly_files():
                 
             print(f"\nHourly Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Hourly backup completed.")
 
-                        
-            
         except Exception as e:
-                print(f"\nHourly Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Hourly backup completed.")
+            print(f"\nHourly Backup Status:\n-> Backing up files from [{source_directory}] to [{backup_directory}]\n-> Backup Status: Failed to complete backup: {e}")
         
         # Sleep for an hour before the next backup
         time.sleep(3600)
@@ -188,7 +190,7 @@ def backup_daily_files():
 
     while True:
         # Calculate the next backup time for the next day at 2:00 AM
-        next_backup_time = datetime.now().replace(hour=0, minute=0, second=0)
+        next_backup_time = datetime.now().replace(hour=2, minute=0, second=0)
         if datetime.now() > next_backup_time:
             # Adjust the next backup time to the next day at 2:00 AM
             next_backup_time += timedelta(days=1)
@@ -236,9 +238,6 @@ def schedule_key_regeneration(interval_hours=2):
         create_keys_for_portfolio('rapido_bank/portfolios', 'rapido_bank/admin/encryption_keys')
         print(f"Keys regenerated, next regeneration in {interval_hours} hours.")
         time.sleep(interval_hours * 3600)
-
-
-### I will fix these issues of the function names####
 
 def start_mtd():
     """Starts the Malware Threat Detection (MTD) system and all associated processes."""
