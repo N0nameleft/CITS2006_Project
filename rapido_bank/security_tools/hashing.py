@@ -90,7 +90,7 @@ def monitor_folder(folder_path):
     previous_hash, previous_hashes = hash_folder(folder_path)
     
     while True:
-        time.sleep(1)  # Sleep for 10 minutes
+        time.sleep(10)  # Sleep for 10 seconds
         current_hash, current_hashes = hash_folder(folder_path)
         
         if current_hash != previous_hash:
