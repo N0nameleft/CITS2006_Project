@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     python3-venv \
     gcc \
     build-essential \
-    python3-dev \  
+    python3-dev \
     curl \
     jq \
     && apt-get clean
@@ -25,10 +25,18 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy Python requirements file and install packages
 COPY requirements.txt /tmp/
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Copy your project files
 COPY rapido_bank /opt/rapido_bank
+
+# Ensure the virtual environment is activated for all users
+RUN echo "source /opt/venv/bin/activate" >> /etc/profile.d/activate_venv.sh \
+    && chmod +x /etc/profile.d/activate_venv.sh
+
+# Make the activation script source automatically in .bashrc for each user
+RUN echo "source /etc/profile.d/activate_venv.sh" >> /etc/bash.bashrc
+
 WORKDIR /opt/rapido_bank
 RUN chmod +x /opt/rapido_bank/security_tools/start_services.sh
 
@@ -71,15 +79,16 @@ RUN chown -R charles:ceo /opt/rapido_bank \
     && chown -R santiago /opt/rapido_bank/portfolios/santiago \
     && chown -R maria /opt/rapido_bank/portfolios/maria
 
-# Change ownership to the admin user for other components
-RUN chown -R admin:admin /opt/rapido_bank/security_tools \
+# Ensure the security_tools directory exists and change ownership to the admin user for other components
+RUN mkdir -p /opt/rapido_bank/security_tools \
+    && chown -R admin:admin /opt/rapido_bank/security_tools \
     && chmod -R 750 /opt/rapido_bank/security_tools \
     && setfacl -R -m g:ceo:rx /opt/rapido_bank/security_tools \
     && chown -R admin:admin /opt/rapido_bank/logs \
     && chown -R admin:admin /opt/rapido_bank/backups \
     && chmod -R 700 /opt/rapido_bank/backups \
     && chown -R admin:admin /opt/rapido_bank/admin \
-    && chmod -R 700 /opt/rapido_bank/admin 
+    && chmod -R 700 /opt/rapido_bank/admin
 
 # Create a non-authorized user for testing
 RUN useradd -m -s /bin/bash mike && \
