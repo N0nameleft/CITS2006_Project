@@ -5,12 +5,17 @@ from cipher import generate_key, vigenere_encrypt
 
 def save_key(key, filename):
     """Save the encryption key to a specified file."""
-    directory = os.path.dirname(filename)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    with open(filename, 'w') as file:
-        file.write(key)
-    print(f"Key saved to {filename}")
+    try:
+        directory = os.path.dirname(filename)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        with open(filename, 'w') as file:
+            file.write(key)
+        print(f"Key saved to {filename}")
+    except PermissionError:
+        print(f"Permission denied: {filename}")
+    except Exception as e:
+        print(f"Error saving key to {filename}: {e}")
 
 def get_timestamped_filename(base_dir, prefix, extension='key'):
     """Generate a timestamped filename for storing keys."""
