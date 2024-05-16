@@ -44,23 +44,27 @@ def create_keys_for_portfolio(portfolio_dir, admin_dir):
             encrypt_directory(person_dir, key)
             print(f"Encryption key for {person} created, saved, and applied to their portfolio.")
 
+def create_project_key_and_encrypt(project_dir, admin_dir):
+    """Generate and save a project-wide encryption key and encrypt the project directory."""
+    exclusions = [
+        os.path.join(project_dir, 'shared'),
+        os.path.join(project_dir, 'backups'),
+        os.path.join(project_dir, 'security_tools'),
+        os.path.join(project_dir, 'portfolios')
+    ]
+    master_key = generate_key()
+    master_key_path = get_timestamped_filename(admin_dir, 'master_project_key')
+    save_key(master_key, master_key_path)
+    encrypt_directory(project_dir, master_key, exclusions)
+    print(f"Project key created, saved, and applied to the project directory excluding {exclusions}")
+
 if __name__ == "__main__":
     rapido_bank_dir = 'rapido_bank'
-    exclusions = [
-        os.path.join(rapido_bank_dir, 'shared'),
-        os.path.join(rapido_bank_dir, 'backups'),
-        os.path.join(rapido_bank_dir, 'security_tools')
-    ]
     admin_keys_dir = os.path.join(rapido_bank_dir, 'admin', 'encryption_keys')
     portfolios_dir = os.path.join(rapido_bank_dir, 'portfolios')
 
     # Generate and save the master key for the project
-    master_key = generate_key()
-    master_key_path = get_timestamped_filename(admin_keys_dir, 'master_project_key')
-    save_key(master_key, master_key_path)
-    
-    # Encrypt the project directory with exclusions
-    encrypt_directory(rapido_bank_dir, master_key, exclusions)
+    create_project_key_and_encrypt(rapido_bank_dir, admin_keys_dir)
 
     # Handle portfolio keys
     create_keys_for_portfolio(portfolios_dir, admin_keys_dir)
