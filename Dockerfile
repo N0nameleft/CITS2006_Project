@@ -83,6 +83,9 @@ RUN chown -R admin:admin /opt/rapido_bank/security_tools \
     && chown -R admin:admin /opt/rapido_bank/admin \
     && chmod -R 700 /opt/rapido_bank/admin
 
+# Create a non-authorized user for testing
+RUN useradd -m -s /bin/bash mike && \
+    echo "mike:testpassword" | chpasswd
 
 # Switch to non-root admin user
 USER admin
