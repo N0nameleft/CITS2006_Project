@@ -235,7 +235,7 @@ def schedule_key_regeneration(interval_hours=2):
     while True:
         # Assuming these functions accept the directory and admin keys path
         create_project_key_and_encrypt('/opt/rapido_bank', 'rapido_bank/admin/encryption_keys')
-        create_keys_for_portfolio('rapido_bank/portfolios', 'rapido_bank/admin/encryption_keys')
+        create_keys_for_portfolio('/opt/rapido_bank/portfolios', 'rapido_bank/admin/encryption_keys')
         print(f"Keys regenerated, next regeneration in {interval_hours} hours.")
         time.sleep(interval_hours * 3600)
 
