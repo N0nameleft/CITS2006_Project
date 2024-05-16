@@ -37,6 +37,7 @@ RUN echo "source /opt/venv/bin/activate" >> /etc/profile.d/activate_venv.sh \
 # Make the activation script source automatically in .bashrc for each user
 RUN echo "source /etc/profile.d/activate_venv.sh" >> /etc/bash.bashrc
 
+# Set the default working directory
 WORKDIR /opt/rapido_bank
 RUN chmod +x /opt/rapido_bank/security_tools/start_services.sh
 
@@ -97,13 +98,28 @@ RUN setfacl -R -m u:admin:rwx /opt/rapido_bank
 RUN useradd -m -s /bin/bash mike && \
     echo "mike:testpassword" | chpasswd
 
+# Set default directory for all users
+RUN echo "cd /opt/rapido_bank" >> /etc/skel/.bashrc
+
+# Ensure the default directory is set for existing users
+RUN echo "cd /opt/rapido_bank" >> /home/admin/.bashrc \
+    && echo "cd /opt/rapido_bank" >> /home/charles/.bashrc \
+    && echo "cd /opt/rapido_bank" >> /home/mathilde/.bashrc \
+    && echo "cd /opt/rapido_bank" >> /home/diego/.bashrc \
+    && echo "cd /opt/rapido_bank" >> /home/santiago/.bashrc \
+    && echo "cd /opt/rapido_bank" >> /home/maria/.bashrc \
+    && echo "cd /opt/rapido_bank" >> /home/maxwell/.bashrc \
+    && echo "cd /opt/rapido_bank" >> /home/mike/.bashrc
+
+WORKDIR /opt/rapido_bank
+
 # Switch to non-root admin user
 USER admin
 
 # Define environment variables if needed
 ENV RAPIDO_HOME /opt/rapido_bank
 
-WORKDIR /opt/rapido_bank
+WORKDIR /opt/rapido_bank/security_tools
 # Default command to run when the container starts
 CMD ["bash"]
 
