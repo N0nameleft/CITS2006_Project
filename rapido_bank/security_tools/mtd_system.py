@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import requests
 from yara_engine import start_yara_engine
 from cipher import generate_key, vigenere_encrypt
+from create_encryption_keys import create_keys_for_portfolio, create_project_key_and_encrypt
 from hashing import simple_hash
 
 # API configuration
@@ -210,6 +211,15 @@ def backup_daily_files():
         # Sleep until the next backup time
         time.sleep(time_to_sleep)
 
+def schedule_key_regeneration(interval_hours=2):
+    """Schedule key regeneration every specified number of hours."""
+    while True:
+        # Assuming these functions accept the directory and admin keys path
+        create_project_key_and_encrypt('/opt/rapido_bank', 'rapido_bank/admin/encryption_keys')
+        create_keys_for_portfolio('rapido_bank/portfolios', 'rapido_bank/admin/encryption_keys')
+        print(f"Keys regenerated, next regeneration in {interval_hours} hours.")
+        time.sleep(interval_hours * 3600)
+
 
 ### I will fix these issues of the function names####
 
@@ -219,9 +229,9 @@ def start_mtd():
         return
 
     monitored_directory = os.path.join(os.path.dirname(__file__), '..', 'logs', 'important_logs')
-    key_rotation_interval_seconds = 3600  # Rotate keys every hour
 
-    threading.Thread(target=monitor_files_with_yara, args=(rules, monitored_directory), daemon=True).start()
+    # Start key rotation in a separate thread
+    threading.Thread(target=schedule_key_regeneration, args=(2,), daemon=True).start()
     threading.Thread(target=rotate_keys, args=(), daemon=True).start()
     threading.Thread(target=backup_daily_files, daemon=True).start()  # Start the daily backup thread
     threading.Thread(target=backup_hourly_files, daemon=True).start()
