@@ -5,6 +5,9 @@ from cipher import generate_key, vigenere_encrypt
 
 def save_key(key, filename):
     """Save the encryption key to a specified file."""
+    directory = os.path.dirname(filename)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     with open(filename, 'w') as file:
         file.write(key)
     print(f"Key saved to {filename}")
@@ -45,21 +48,20 @@ def create_keys_for_portfolio(portfolio_dir, admin_dir):
             print(f"Encryption key for {person} created, saved, and applied to their portfolio.")
 
 def create_project_key_and_encrypt(project_dir, admin_dir):
-    """Generate and save a project-wide encryption key and encrypt the project directory."""
+    """Create a master key for the project, save it, and encrypt the project directory."""
     exclusions = [
         os.path.join(project_dir, 'shared'),
         os.path.join(project_dir, 'backups'),
-        os.path.join(project_dir, 'security_tools'),
-        os.path.join(project_dir, 'portfolios')
+        os.path.join(project_dir, 'security_tools')
     ]
     master_key = generate_key()
     master_key_path = get_timestamped_filename(admin_dir, 'master_project_key')
     save_key(master_key, master_key_path)
     encrypt_directory(project_dir, master_key, exclusions)
-    print(f"Project key created, saved, and applied to the project directory excluding {exclusions}")
+    print(f"Master key created and applied to project directory: {project_dir}")
 
-if __name__ == "__main__":
-    rapido_bank_dir = 'rapido_bank'
+def initialize_encryption_keys(rapido_bank_dir):
+    """Initialize encryption keys for the project and portfolios."""
     admin_keys_dir = os.path.join(rapido_bank_dir, 'admin', 'encryption_keys')
     portfolios_dir = os.path.join(rapido_bank_dir, 'portfolios')
 
@@ -68,3 +70,7 @@ if __name__ == "__main__":
 
     # Handle portfolio keys
     create_keys_for_portfolio(portfolios_dir, admin_keys_dir)
+
+if __name__ == "__main__":
+    rapido_bank_dir = 'rapido_bank'
+    initialize_encryption_keys(rapido_bank_dir)

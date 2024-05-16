@@ -4,7 +4,7 @@ import threading
 import time
 from datetime import datetime, timedelta
 from cipher import generate_key, vigenere_encrypt
-from create_encryption_keys import create_keys_for_portfolio, create_project_key_and_encrypt
+from create_encryption_keys import create_keys_for_portfolio, create_project_key_and_encrypt, initialize_encryption_keys
 from yara_engine import load_yara_rules, scan_file, start_yara_engine
 from hashing import hash_file
 
@@ -242,6 +242,9 @@ def schedule_key_regeneration(interval_hours=2):
 def start_mtd():
     """Starts the Malware Threat Detection (MTD) system and all associated processes."""
     print("Initializing MTD system...")
+
+    # Initialize encryption keys
+    initialize_encryption_keys('/opt/rapido_bank')
 
     # Start the YARA engine in a separate thread to begin scanning.
     threading.Thread(target=start_yara_engine, daemon=True).start()
