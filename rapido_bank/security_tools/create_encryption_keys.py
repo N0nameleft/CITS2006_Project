@@ -14,10 +14,11 @@ def get_timestamped_filename(base_dir, prefix, extension='key'):
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     return os.path.join(base_dir, f"{prefix}_{timestamp}.{extension}")
 
-def encrypt_directory(directory, key, exclusions):
+def encrypt_directory(directory, key, exclusions=None):
     """Encrypt all files in a directory, excluding specified subdirectories."""
+    exclusions = exclusions or []
     for root, dirs, files in os.walk(directory, topdown=True):
-        dirs[:] = [d for d in dirs if os.path.join(root, d) not in exclusions]  # Modify dirs in-place to skip exclusions
+        dirs[:] = [d for d in dirs if os.path.join(root, d) not in exclusions]  # Skip excluded directories
         for file in files:
             file_path = os.path.join(root, file)
             if not any(file_path.startswith(excluded) for excluded in exclusions):
@@ -34,19 +35,21 @@ def create_keys_for_portfolio(portfolio_dir, admin_dir):
         person_dir = os.path.join(portfolio_dir, person)
         if os.path.isdir(person_dir):
             key = generate_key()
-            person_key_path = get_timestamped_filename(person_dir, 'encryption_key')
+            # Save the key within the person's directory and the admin directory
+            person_key_path = os.path.join(person_dir, 'encryption_key.key')
             admin_key_path = get_timestamped_filename(admin_dir, f'{person}_encryption_key')
             save_key(key, person_key_path)
-            shutil.copy(person_key_path, admin_key_path)
-            print(f"Key for {person} created and copied to admin directory.")
+            save_key(key, admin_key_path)
+            # Encrypt all files in the person's directory
+            encrypt_directory(person_dir, key)
+            print(f"Encryption key for {person} created, saved, and applied to their portfolio.")
 
 if __name__ == "__main__":
     rapido_bank_dir = 'rapido_bank'
     exclusions = [
         os.path.join(rapido_bank_dir, 'shared'),
         os.path.join(rapido_bank_dir, 'backups'),
-        os.path.join(rapido_bank_dir, 'portfolios'),
-        os.path.join(rapido_bank_dir, 'security_tools')  # Exclude the security_tools directory
+        os.path.join(rapido_bank_dir, 'security_tools')
     ]
     admin_keys_dir = os.path.join(rapido_bank_dir, 'admin', 'encryption_keys')
     portfolios_dir = os.path.join(rapido_bank_dir, 'portfolios')
