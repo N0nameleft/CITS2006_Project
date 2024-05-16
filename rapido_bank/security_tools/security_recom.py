@@ -29,16 +29,28 @@ def generate_security_recommendations(events):
 
         if event_type == 'YARA Alert':
             recommendations.append(f"Investigate the file: {details}")
+        elif event_type == 'YARA Alert - file non-exist':
+            recommendations.append(f"Investigate the file: {details}")
+        elif event_type == 'YARA Alert - no matching rules':
+            recommendations.append(f"Investigate the file: {details}")
+        elif event_type == 'Isolated File':
+            recommendations.append(f"Investigate the file: {details}")
         elif event_type == 'Malware Test':
             severity = details.split('Severity: ')[1]
             if severity in ['Severe', 'Extreme']:
                 recommendations.append(f"Delete or quarantine the file: {details.split(' tested positive')[0]}")
             else:
                 recommendations.append(f"Review and monitor the file: {details.split(' tested positive')[0]}")
+        elif event_type == 'Malware Test - Failed':
+            recommendations.append(f"Be carefully handling this file: {details}")
         elif event_type == 'File Deletion':
             recommendations.append(f"Ensure the deleted file is not critical to operations: {details}")
         elif event_type == 'File Restoration':
             recommendations.append(f"Verify the integrity and security of the restored file: {details}")
+        elif event_type == 'Backup Needed':
+            recommendations.append("Key rotation has been deferred. Complete backup as soon as possible")
+        elif event_type == 'Key not Found':
+            recommendations.append("No existing found, check if it was accidentally deleted.")    
         elif event_type == 'Key Rotation':
             recommendations.append("Ensure all sensitive files have been re-encrypted with the new keys.")
         elif event_type == 'Key Regeneration':
