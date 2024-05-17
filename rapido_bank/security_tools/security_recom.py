@@ -101,7 +101,7 @@ def main(log_file_path):
         log_file.truncate(0)
 
 if __name__ == "__main__":
-    log_event("test event", "test event details", log_file=LOG_FILE_PATH)
+    # log_event("test event", "test event details", log_file=LOG_FILE_PATH) 
     parser = argparse.ArgumentParser(description='Generate security recommendations based on MTD log events.')
     parser.add_argument('--log-file', type=str, default=LOG_FILE_PATH, help='Path to the log file')
     args = parser.parse_args()

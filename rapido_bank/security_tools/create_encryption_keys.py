@@ -84,7 +84,8 @@ def create_project_key_and_encrypt(project_dir, admin_dir, verbose=False):
         os.path.join(project_dir, 'shared'),
         os.path.join(project_dir, 'backups'),
         os.path.join(project_dir, 'security_tools'),
-        os.path.join(project_dir, 'admin', 'encryption_keys')
+        os.path.join(project_dir, 'admin', 'encryption_keys'),
+        os.path.join(project_dir, 'logs/important_logs/security_events.log')
     ]
     master_key = generate_key()
     master_key_path = get_timestamped_filename(admin_dir, 'master_project_key')
