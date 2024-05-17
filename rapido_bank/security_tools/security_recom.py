@@ -1,6 +1,6 @@
 import argparse
 from datetime import datetime
-import os
+import time
 
 # Define the path to the log file
 LOG_FILE_PATH = '/opt/rapido_bank/logs/important_logs/security_events.log'
@@ -92,13 +92,15 @@ def generate_security_recommendations(events):
 
 def main(log_file_path):
     """Main function to parse log file and generate recommendations."""
-    events = parse_log_file(log_file_path)
-    recommendations = generate_security_recommendations(events)
-    print("\nSecurity Recommendations:")
-    for recommendation in recommendations:
-        print(f"- {recommendation}")
-    with open(log_file_path, 'w') as log_file:
-        log_file.truncate(0)
+    while True:
+        events = parse_log_file(log_file_path)
+        recommendations = generate_security_recommendations(events)
+        print("\nSecurity Recommendations:")
+        for recommendation in recommendations:
+            print(f"- {recommendation}")
+        with open(log_file_path, 'w') as log_file:
+            log_file.truncate(0)
+        time.sleep(600) # sleep 10 mins
 
 if __name__ == "__main__":
     # log_event("test event", "test event details", log_file=LOG_FILE_PATH) 
