@@ -12,7 +12,7 @@ def log_event(event_type, details, log_file=LOG_FILE_PATH):
         'event_type': event_type,
         'details': details
     }
-    with open(log_file, 'a') as lf:
+    with open(log_file, 'a+') as lf:
         lf.write(f"{event['timestamp']} - {event['event_type']} - {event['details']}\n")
     print(f"Logged event: {event_type} - {details}")
 
@@ -83,6 +83,8 @@ def generate_security_recommendations(events):
             recommendations.append(f"Check current user is logged in: {details}")
         elif event_type == 'Save Key Error' or event_type == 'Encryption Error' or event_type == 'YARA Scanning Error':
             recommendations.append(f"Check file/directory: {details}")
+        else:
+            recommendations.append(f"{event_type} logged with detail: {details}. Security recommendation unavailable for this event.")
 
 
 
@@ -96,10 +98,12 @@ def main(log_file_path):
     for recommendation in recommendations:
         print(f"- {recommendation}")
     with open(log_file_path, 'w') as log_file:
-        log_file.truncate()
+        log_file.truncate(0)
 
 if __name__ == "__main__":
+    log_event("test event", "test event details", log_file=LOG_FILE_PATH)
     parser = argparse.ArgumentParser(description='Generate security recommendations based on MTD log events.')
     parser.add_argument('--log-file', type=str, default=LOG_FILE_PATH, help='Path to the log file')
     args = parser.parse_args()
     main(log_file_path=args.log_file)
+
