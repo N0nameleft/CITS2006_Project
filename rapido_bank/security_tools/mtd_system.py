@@ -130,6 +130,8 @@ def rotate_keys(verbose):
     key_directory = '/opt/rapido_bank/admin/encryption_keys'
     directory_to_encrypt = '/opt/rapido_bank'
 
+    security_events_log = '/opt/rapido_bank/logs/important_logs/security_events.log'
+
     try:
         for root, dirs, files in os.walk(directory_to_encrypt):
             # Ensure the file is not in a directory to skip
@@ -138,6 +140,10 @@ def rotate_keys(verbose):
 
             for filename in files:
                 file_path = os.path.join(root, filename)
+
+                # Exclude specific files from encryption
+                if file_path == security_events_log or file_path.endswith('.key'):  # Skip encryption key and security log file
+                    continue
 
                 # Attempt to find a key file that matches this directory or file
                 possible_key_files = [k for k in os.listdir(key_directory) if 'project_key' in k]
@@ -165,9 +171,9 @@ def rotate_keys(verbose):
                     file.write(encrypted_contents)
 
         if verbose:
-            print(f"Rotated keys using the latest available keys for all files in {directory_to_encrypt}")
+            print(f"Rotated keys using the latest available keys for all files in {directory_to_encrypt} except for the key file and security events log.")
             """----------security recommendation------------"""
-            log_event('Key Rotation', f"Keys rotated for all files in {directory_to_encrypt}.")
+            log_event('Key Rotation', f"Keys rotated for all files in {directory_to_encrypt} except for the key file and security events log.")
             """---------------------------------------------"""
 
     except Exception as e:
@@ -176,6 +182,7 @@ def rotate_keys(verbose):
             """----------security recommendation------------"""
             log_event('Key Rotation Error', f"Error during key rotation: {e}")
             """---------------------------------------------"""
+
 
 def backup_hourly_files(verbose):
     source_directory = '/opt/rapido_bank/'
