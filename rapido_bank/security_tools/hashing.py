@@ -1,9 +1,5 @@
 import os
 import time
-# import tkinter as tk
-# from tkinter import messagebox
-# import threading
-# import queue
 
 def hash_file(file_path):
     try:
@@ -70,22 +66,6 @@ def show_alert(changes):
     for change in changes:
         print(f"Changed: {change[0]}\nOld Hash: {change[1]}\nNew Hash: {change[2]}\n")
 
-"""tkinter thread for prompting alert"""
-# def alert_thread_func(alert_queue):
-#     root = tk.Tk()
-#     root.withdraw()
-    
-#     while True:
-#         changes = alert_queue.get()
-#         if changes is None:
-#             break
-#         change_details = "\n".join([f"Changed: {path}\nOld Hash: {old_hash}\nNew Hash: {new_hash}" for path, old_hash, new_hash in changes])
-#         messagebox.showinfo("Folder Change Detected", change_details)
-#     root.quit()
-
-# def show_alert(alert_queue, changes):
-#     alert_queue.put(changes)
-
 def monitor_folder(folder_path):
     previous_hash, previous_hashes = hash_folder(folder_path)
     
@@ -104,23 +84,3 @@ if __name__ == "__main__":
     folder_to_monitor = "/opt/rapido_bank/"
     monitor_folder(folder_to_monitor)
 
-"""tkinter"""
-# if __name__ == "__main__":
-#     folder_to_monitor = "./"
-    
-#     alert_queue = queue.Queue()
-#     alert_thread = threading.Thread(target=alert_thread_func, args=(alert_queue,))
-#     alert_thread.start()
-
-#     monitor_folder(folder_to_monitor, alert_queue)
-    
-#     # Send None to the queue to stop the alert thread when the script exits
-#     alert_queue.put(None)
-#     alert_thread.join()
-
-# test
-# file_path = "main.py"
-# hash_output = hash_file(file_path)
-# print("Hash of the file:", hash_output)
-# folder_path = '../'
-# print(hash_folder(folder_path))

@@ -1,14 +1,14 @@
-from cipher import *
 from hashing import *
 from mtd_system import *
-from yara_engine import *
-from create_encryption_keys import *
-from get_nonauthorized_users import *
+from security_recom import main as sec_rec
 
-
-def main():
-    start_yara_engine()
-    start_mtd()
+LOG_FILE_PATH = '/opt/rapido_bank/logs/important_logs/security_events.log'
+MONITOR_FOLDER_PATH =  "/opt/rapido_bank/"
+def main(verbose):
+    monitor_folder(MONITOR_FOLDER_PATH)
+    start_mtd(verbose)
+    sec_rec(LOG_FILE_PATH)
 
 if __name__ == "__main__":
-    main()
+    verbose = True
+    main(verbose)
