@@ -1,6 +1,6 @@
 import pwd
 import subprocess
-
+from security_recom import log_event
 authorized_users = [
     'admin', 'charles', 'mathilde', 'diego', 'santiago', 'maria', 'maxwell',
     'root', 'daemon', 'bin', 'sys', 'sync', 'games', 'man', 'lp', 'mail',
@@ -22,6 +22,7 @@ def check_authorized_users(authorized_users):
         print("Non-authorized users found:")
         for user in non_authorized_users:
             print(f"- {user}")
+            log_event('Unauthorized User', f"User {user} is not authorised.")
     else:
         print("No non-authorized users found. All users are authorized.")
     
@@ -46,6 +47,7 @@ def revoke_permissions(non_authorized_users):
             print(f"Revoked permissions for user: {user}")
         except subprocess.CalledProcessError as e:
             print(f"Failed to revoke permissions for user: {user}. Error: {e}")
+            log_event('Unauthorized User', f"Failed to revoke {user} permission, revoke manually and investigate.")
 
 if __name__ == "__main__":
     non_authorized_users = check_authorized_users(authorized_users)
